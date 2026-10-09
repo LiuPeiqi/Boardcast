@@ -1,5 +1,13 @@
 # 验证记录
 
+## 2026-10-09：macOS 设计同步 0.2.7 与图标一致性
+
+在「调整设备列表工具栏布局」会话完成 Windows 0.2.7 后，同步 [Mac 设计](macos-design.md)、[本地开发交接](../platforms/macos/DEVELOPMENT.md)和图标要点。文件行逐项测完整名称与完整元数据，放得下才单行，放不下保留两行；分栏、统计和排除变化后重测，主清单与展开一致。设备继续保持单行。
+
+本次新增 [图标 catalog](assets/icons/catalog.json)：从软件当前几何派生的 32 个类型、一个 Mac 蓝色文件夹代表及三个平台标记，共 36 个 112×112 透明 PNG，附源摘要、映射和 MIT 许可。导出器 173 项分类检查通过，36 个资产与两个源文件的 SHA-256 复核无差异；本轮主设计及交接资料 24 个本地链接检查无缺失。文件原色与平台几何一致，普通 Mac 文件夹是明确的平台外观例外。
+
+Swift 应用功能和 bundle 0.1.0 未改动，资源尚未接入原生 app，Mac 编译、系统目录图标、资源打包及跨平台互通仍待实机验收。本次只修订设计、派生资源及维护工具；不修改已验收的 Windows 签名包，以源码目录中的最新交接资料为准。
+
 ## 2026-10-09：0.2.7 自适应文件行与签名发行
 
 文件名与大小、文件数量能够完整放下时合为一行；完整自然宽度超过可用空间时保留两行。窗口宽度、后台统计结果及排除信息变化后自动重新测量，首页与展开清单共享同一模板；长文件名仍可通过悬停查看完整路径，发送清单、选择、筛选及排除数据保持原有行为。
@@ -32,7 +40,7 @@ macOS 设计和开发交接文档随包同步，Swift 实现仍未在 Mac 构建
 
 新增布局检查覆盖 280 像素设备栏、长名称、版本与图标同一行且不重叠、蓝色气泡导航而不下载、灰色版本无额外动作、多个兼容来源、仅运行版本变化、离线/离开恢复、分组筛选和接收对象保持。前面的单行设备标题栏、集成空态添加、按需文件工具栏和一键清除筛选也一并保留。
 
-最终发行采用原 boardcast-release-1，Windows x64 自包含完整 ZIP；从最终 ZIP 重新解压检查签名、全部文件、固定公钥、UI 版本与哈希、CLI/MCP及回环 mTLS。升级验收以旧签名 0.2.5 候选与 0.2.4 正式版分别下载最终 0.2.6 并检查待安装状态恢复。报告在签名包外（已入库 `dist/`）：[发行验收](../dist/Boardcast-win-x64-0.2.6.verification.json)、[0.2.5 升级验收](../dist/Boardcast-win-x64-0.2.6.upgrade-verification.json)、[0.2.4 升级验收](../dist/Boardcast-win-x64-0.2.6.from-0.2.4.upgrade-verification.json)。
+最终发行采用原 boardcast-release-1，Windows x64 自包含完整 ZIP；从最终 ZIP 重新解压检查签名、全部文件、固定公钥、UI 版本与哈希、CLI/MCP及回环 mTLS。升级验收以旧签名 0.2.5 候选与 0.2.4 正式版分别下载最终 0.2.6 并检查待安装状态恢复。报告当时保存在签名包外的本地 `artifacts/releases/`（历史旧版不入库发布）。
 
 运行中的 0.2.5 候选目录保留，本次使用全新 0.2.6 目录，不覆盖旧签名内容。macOS 设计与开发交接文件一并打包，Swift 实现仍未在 Mac 构建验证；回环更新检查不替代正式 WPF 安装切换、实体双机、防火墙或干净机器验收。
 
@@ -43,7 +51,7 @@ macOS 设计和开发交接文档随包同步，Swift 实现仍未在 Mac 构建
 
 发行范围为 Windows x64 自包含签名完整包，沿用 boardcast-release-1。版本由 0.2.4 递增至 0.2.5，包含下述单行设备工具栏、空清单点击添加、条件文件操作和一键清除筛选；此前接收存储与取消清理检查完整复测。macOS 设计与开发交接文档一并保留，Swift 实现仍未在 Mac 构建验证。
 
-最终 ZIP 使用 [Test-Release.ps1](../scripts/Test-Release.ps1) 从外部压缩包重新解压验收；更新路径使用 [Test-ReleaseUpgrade.ps1](../scripts/Test-ReleaseUpgrade.ps1)，以旧签名 0.2.4 和最终解压的 0.2.5 为输入，检查真实回环 mTLS 完整下载和待安装状态恢复。报告独立保存在签名包外（已入库 `dist/`）：[发行验收](../dist/Boardcast-win-x64-0.2.5.verification.json)、[升级验收](../dist/Boardcast-win-x64-0.2.5.upgrade-verification.json)。此流程不替代正式 WPF 程序目录切换、实体双机、防火墙或干净机器验收。
+最终 ZIP 使用 [Test-Release.ps1](../scripts/Test-Release.ps1) 从外部压缩包重新解压验收；更新路径使用 [Test-ReleaseUpgrade.ps1](../scripts/Test-ReleaseUpgrade.ps1)，以旧签名 0.2.4 和最终解压的 0.2.5 为输入，检查真实回环 mTLS 完整下载和待安装状态恢复。报告当时保存在签名包外的本地 `artifacts/releases/`（历史旧版不入库发布）。此流程不替代正式 WPF 程序目录切换、实体双机、防火墙或干净机器验收。
 
 
 ## 2026 年 10 月 9 日 Windows 操作精简
@@ -94,7 +102,7 @@ dotnet run --project tests/Boardcast.TransportTests -c Release -- --receive-stor
 # 仅生成当前布局预览：
 dotnet run --project tests/Boardcast.LayoutTests -c Release -- --render-preview --output-dir artifacts/layout-current
 # 从最终完整包验收：
-./scripts/Test-Release.ps1 -ReleaseZip dist/Boardcast-win-x64-0.2.4.zip -ExpectedVersion 0.2.4
+./scripts/Test-Release.ps1 -ReleaseZip dist/Boardcast-win-x64-0.2.7.zip -ExpectedVersion 0.2.7
 ~~~
 
 ## 已知验证边界
