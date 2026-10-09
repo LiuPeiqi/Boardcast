@@ -1,0 +1,39 @@
+{
+  "success": true,
+  "fromVersion": "0.2.5",
+  "toVersion": "0.2.6",
+  "finalState": "ready",
+  "packageBytes": 65852152,
+  "packageSha256": "0f905c50ced90f8a126b743c2d776f286eba9f71f6c00ddeadb68e8b80c7c8a4",
+  "bytesReceived": 65852152,
+  "reusedBytes": 0,
+  "keyId": "boardcast-release-1",
+  "publisherPublicKeySha256": "378df73141c35ef6d5754067c28ce58d637670c04550a5fbbc1e13fcfc465722",
+  "oldCoreSha256": "9dd978efc900c938b999bb64fb04675f51cf81f53fc2298cbc45c550c38402b6",
+  "newCoreSha256": "30366c2bf61ce533b374e147d441f77baec8ac3a9a9409fdf5d3393bc692b7b2",
+  "releaseInputsUnchanged": true,
+  "clientChecks": [
+    "Loaded Core exactly matches the selected released binary.",
+    "The process is running the expected released Core version 0.2.5.",
+    "Old and new releases have the same publisher key and key ID.",
+    "The selected release enables updates and starts idle.",
+    "The actual old Core accepts the new release signature, platform and higher version under its existing publisher trust.",
+    "The isolated source endpoint matches the target release.",
+    "The unmodified old release downloaded the entire new release through real mTLS and reached ready.",
+    "The first isolated download fetched all package bytes rather than reusing a prior cache.",
+    "The downloaded package and every signed payload entry independently pass the old release verifier.",
+    "The old release prepared one verified updater helper snapshot.",
+    "A fresh old release service restores the fully verified pending update to ready."
+  ],
+  "serverChecks": [
+    "Loaded Core exactly matches the selected released binary.",
+    "The process is running the expected released Core version 0.2.6.",
+    "Old and new releases have the same publisher key and key ID.",
+    "The selected release enables updates and starts idle.",
+    "The new release advertises its correct version and an active update port."
+  ],
+  "boundaries": [
+    "Real loopback mTLS full download and ready-state recovery; no updater installation or user program replacement.",
+    "No physical two-device, firewall traversal, or clean-machine test."
+  ]
+}

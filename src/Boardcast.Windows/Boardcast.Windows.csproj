@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType><TargetFramework>net10.0-windows</TargetFramework><UseWPF>true</UseWPF>
+    <AssemblyName>Boardcast</AssemblyName><ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>../../assets/boardcast.ico</ApplicationIcon>
+  </PropertyGroup>
+  <ItemGroup><ProjectReference Include="../Boardcast.Core/Boardcast.Core.csproj" /></ItemGroup>
+  <ItemGroup>
+    <Resource Include="../../assets/boardcast.ico" Link="Assets/boardcast.ico" />
+    <Resource Include="../../assets/boardcast.png" Link="Assets/boardcast.png" />
+  </ItemGroup>
+</Project>

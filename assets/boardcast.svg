@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 64 64">
+  <title>Boardcast — nearby sharing</title>
+  <desc>A blue circle and yellow square face a red send arrow on a warm white tile.</desc>
+  <rect x="3" y="3" width="58" height="58" rx="14" fill="#F7F6F0"/>
+  <circle cx="22" cy="21" r="10" fill="#2459E0"/>
+  <rect x="12" y="35" width="20" height="18" rx="1" fill="#EABB39"/>
+  <path d="M 38 12 L 55 32 L 38 52 Z" fill="#DE5547"/>
+</svg>

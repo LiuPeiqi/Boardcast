@@ -1,0 +1,40 @@
+# Build outputs
+**/bin/
+**/obj/
+
+# Local publish / diagnostics (not source of truth)
+artifacts/
+.test-results/
+diagnostics/
+*.probe
+*.next-*
+# mis-captured CLI argv as filename (layout preview)
+/--output-dir
+
+# IDE / OS
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Secrets and crash dumps (never commit)
+*.pfx
+*.pem
+*.dmp
+*.mdmp
+crashDumps/
+
+# Unpacked self-contained runtimes (use dist/*.zip instead)
+dist/Boardcast-win-x64-*/
+dist/Boardcast-win-arm64-*/
+dist/*.next-*/
+
+# macOS local build outputs
+platforms/macos/.build/
+platforms/macos/dist/
+platforms/macos/.swiftpm/
+platforms/macos/.DS_Store

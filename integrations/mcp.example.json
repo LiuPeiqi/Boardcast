@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "boardcast": {
+      "command": "C:\\Apps\\Boardcast\\boardcast-cli.exe",
+      "args": ["mcp"]
+    }
+  }
+}

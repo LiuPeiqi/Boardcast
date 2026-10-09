@@ -1,0 +1,22 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Boardcast.Core/Boardcast.Core.csproj" />
+    <Project Path="src/Boardcast.Daemon/Boardcast.Daemon.csproj" />
+    <Project Path="src/Boardcast.Windows/Boardcast.Windows.csproj" />
+    <Project Path="src/Boardcast.Cli/Boardcast.Cli.csproj" />
+    <Project Path="src/Boardcast.Updater/Boardcast.Updater.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Boardcast.PolicyTests/Boardcast.PolicyTests.csproj" />
+    <Project Path="tests/Boardcast.GroupTests/Boardcast.GroupTests.csproj" />
+    <Project Path="tests/Boardcast.TransportTests/Boardcast.TransportTests.csproj" />
+    <Project Path="tests/Boardcast.WindowsTests/Boardcast.WindowsTests.csproj" />
+    <Project Path="tests/Boardcast.ScannerTests/Boardcast.ScannerTests.csproj" />
+    <Project Path="tests/Boardcast.UpdateTests/Boardcast.UpdateTests.csproj" />
+    <Project Path="tests/Boardcast.UpdateFixtureHost/Boardcast.UpdateFixtureHost.csproj" />
+    <Project Path="tests/Boardcast.AutomaticUpdateTests/Boardcast.AutomaticUpdateTests.csproj" />
+    <Project Path="tests/Boardcast.LayoutTests/Boardcast.LayoutTests.csproj" />
+    <Project Path="tests/Boardcast.RecoveryTests/Boardcast.RecoveryTests.csproj" />
+  </Folder>
+</Solution>
+

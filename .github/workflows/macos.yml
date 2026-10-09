@@ -1,0 +1,25 @@
+name: macOS native build
+on:
+  push:
+    paths: ["platforms/macos/**", ".github/workflows/macos.yml"]
+  pull_request:
+    paths: ["platforms/macos/**", ".github/workflows/macos.yml"]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  native:
+    runs-on: macos-14
+    defaults:
+      run:
+        working-directory: platforms/macos
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test independent Swift policy and protocol models
+        run: swift test
+      - name: Build universal app bundle
+        run: bash scripts/build.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Boardcast-macOS-unsigned-development
+          path: platforms/macos/dist/Boardcast-macOS.zip

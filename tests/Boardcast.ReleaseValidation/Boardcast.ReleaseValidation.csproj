@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework></PropertyGroup>
+  <ItemGroup><Reference Include="Boardcast.Core"><HintPath>$(ReleaseCorePath)</HintPath><Private>true</Private></Reference></ItemGroup>
+  <Target Name="RequireReleasedCore" BeforeTargets="ResolveReferences">
+    <Error Condition="'$(ReleaseCorePath)' == '' Or !Exists('$(ReleaseCorePath)')" Text="Pass -p:ReleaseCorePath pointing to the Core DLL extracted from the release under test." />
+  </Target>
+</Project>

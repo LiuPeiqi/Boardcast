@@ -1,0 +1,23 @@
+name: Windows
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+jobs:
+  build-and-test:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: Build and test
+        shell: pwsh
+        run: ./scripts/Test.ps1
+      - name: Publish portable distribution
+        shell: pwsh
+        run: ./scripts/Publish-Windows.ps1
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Boardcast-win-x64
+          path: artifacts/Boardcast-win-x64.zip
