@@ -4,7 +4,7 @@
 
 **验证状态：源码已落地，本次 Windows 工作环境没有 Swift/macOS SDK；尚未在 Mac 编译、运行或与 Windows 互通。不能把此目录视为已经验证的可分发成品。** GitHub Actions 已配置 macOS 构建与规则测试，只有 CI 和真实双机验收通过后才应发布。
 
-后续开发采用 [macOS 产品与界面设计](../../docs/macos-design.md) 和 [本地开发交接](DEVELOPMENT.md)。方案覆盖最新 Windows 操作精简、原生工作台、菜单栏与 Finder、接收存储及能力迁移；方案中的新增行为尚未实现，现有源码能力以下文为准。
+后续开发采用 [macOS 产品与界面设计](../../docs/macos-design.md) 和 [本地开发交接](DEVELOPMENT.md)。方案覆盖 Windows 0.2.7 的自适应文件行、单行设备项、共享类型与平台图标、Mac 原生文件夹样式、工作台、菜单栏与 Finder、接收存储及能力迁移；方案中的新增行为尚未实现，现有源码能力以下文为准。
 
 ## 已编写的功能
 
