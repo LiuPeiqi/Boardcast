@@ -74,6 +74,9 @@ internal static class Program
         Run("shared settings editor keeps folder and confirmation actions reachable", SettingsEditorLayout);
         Run("update progress, resume and installation keep compact accessible actions", UpdateSettingsStates);
         Run("cancelled and failed receives retain completed-file actions", ReceiveTransferStates);
+        Run("subnet settings retain drafts and forget the exact network endpoint", SubnetSettings);
+        Run("subnet sharing supports multiple devices without disturbing file drafts", SubnetSharing);
+        Run("subnet requests require explicit decisions and display their source", SubnetReceiving);
 
         foreach (string result in Results) Console.WriteLine(result);
         Console.WriteLine($"{(failures == 0 ? "PASS" : "FAIL")} {checks} assertions, {failures} scenarios failed");
@@ -1550,6 +1553,185 @@ internal static class Program
         }
     }
 
+    private static void SubnetSettings(MainWindow window)
+    {
+        Scenario(window, "subnets");
+        var snapshot = Read<DaemonSnapshot>(window, "_snapshot");
+        snapshot.Settings.DiscoverySubnets.Add(new DiscoverySubnet { Cidr = "192.168.42.0/24", Port = 45841 });
+        OpenSettings(window, "general");
+        var root = Layout(window, minimum: true);
+        AssertSettingsLayout(window, "general", root);
+        var panel = SettingsPanel(window, "general");
+        Require(Texts(panel).Contains("192.168.1.0/24 · 端口 45831") && Texts(panel).Contains("192.168.42.0/24 · 端口 45841"),
+            "settings show both current local networks and remembered CIDR/port pairs");
+        var name = Visuals<TextBox>(panel).Single(input => System.Windows.Automation.AutomationProperties.GetName(input) == "设备名称");
+        name.Text = "尚未保存的设备草稿";
+        var forget = Visuals<Button>(panel).Single(button => System.Windows.Automation.AutomationProperties.GetAutomationId(button) == "ForgetSubnet:192.168.42.0/24:45831");
+        forget.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
+        Layout(window, minimum: true);
+        Require(!snapshot.Settings.DiscoverySubnets.Any(subnet => subnet.Cidr == "192.168.42.0/24" && subnet.Port == 45831) &&
+            snapshot.Settings.DiscoverySubnets.Any(subnet => subnet.Cidr == "192.168.42.0/24" && subnet.Port == 45841),
+            "forget removes only the selected CIDR/port pair and retains the same network on another port");
+        snapshot.LocalDiscoverySubnets.Add(new DiscoverySubnet { Cidr = "10.20.0.0/24", Port = 45841 });
+        Call(window, "RefreshSubnetUi");
+        var shareable = (List<DiscoverySubnet>)Call(window, "ShareableSubnets")!;
+        Require(shareable.Count == 3, "sharing combines local and remembered networks without duplicate endpoint choices");
+        Require(Visuals<TextBox>(panel).Contains(name) && name.Text == "尚未保存的设备草稿" && snapshot.Settings.DeviceName != name.Text,
+            "forgetting and refreshed interface networks preserve the unsaved general settings form");
+        var share = Visuals<Button>(panel).Single(button => System.Windows.Automation.AutomationProperties.GetAutomationId(button) == "SettingsShareSubnets");
+        Require(share.IsEnabled, "settings can launch subnet sharing when an online recipient is available");
+        SettingsScroll(window, "general").ScrollToEnd();
+        root = Layout(window, minimum: true);
+        AssertSettingsLayout(window, "general", root);
+        SavePreview(window, "settings-subnets-minimum-tail.png");
+        int mutationRevision = Read<int>(window, "_settingsRevision");
+        Set(window, "_settingsRevision", mutationRevision + 1);
+        var delayed = new IpcResponse { Snapshot = new DaemonSnapshot() };
+        Call(window, "ApplySubnetMutationSnapshot", delayed, mutationRevision);
+        Require(ReferenceEquals(Read<DaemonSnapshot>(window, "_snapshot"), snapshot) && name.Text == "尚未保存的设备草稿",
+            "an older subnet mutation response cannot overwrite a newer snapshot or unsaved settings drafts");
+    }
+
+    private static void SubnetSharing(MainWindow window)
+    {
+        Scenario(window, "few");
+        var snapshot = Read<DaemonSnapshot>(window, "_snapshot");
+        snapshot.LocalDiscoverySubnets = [new() { Cidr = "192.168.1.0/24", Port = 45831 }];
+        snapshot.Settings.DiscoverySubnets = [new() { Cidr = "192.168.42.0/24", Port = 45841 }];
+        snapshot.Peers[1] = snapshot.Peers[1] with { ReceivingEnabled = false };
+        snapshot.Peers[2] = snapshot.Peers[2] with { LanOnline = false };
+        snapshot.Peers.Add(new PeerInfo { Fingerprint = new string('e', 64), Name = "其他 AP 下的工作站", Address = "192.168.42.28", Platform = "windows" });
+        Call(window, "RefreshSubnetUi");
+        Layout(window, minimum: true);
+        Require(Control<Button>(window, "ShareSubnetsButton").IsEnabled,
+            "subnet sharing can start independently of the selected file count");
+        var originalPaths = Read<IList>(window, "_paths").Cast<object>().ToArray();
+        var originalRecipients = Recipients(window).Select(peer => peer.Fingerprint).ToArray();
+        Control<TextBox>(window, "SummaryBox").Text = "尚未发送的文件说明";
+        Control<TextBox>(window, "FileSearch").Text = "使用说明";
+        var owner = new Window { Width = 1, Height = 1, ShowInTaskbar = false };
+        new System.Windows.Interop.WindowInteropHelper(owner).EnsureHandle();
+        SubnetShareDialog? dialog = null;
+        try
+        {
+            dialog = (SubnetShareDialog)Call(window, "CreateSubnetShareDialog", owner, Recipients(window))!;
+            dialog.Width = dialog.MinWidth;
+            dialog.Height = dialog.MinHeight;
+            var root = LayoutContent(dialog);
+            var subnetChoices = Visuals<CheckBox>(root).Where(box => box.Tag is DiscoverySubnet).ToList();
+            var peerChoices = Visuals<CheckBox>(root).Where(box => box.Tag is PeerInfo).ToList();
+            Require(subnetChoices.Count == 2 && peerChoices.Count == 3 && dialog.SelectedPeers.Count == 1,
+                "the chooser includes local and remembered subnets, excludes offline devices, and retains the current recipient");
+            Require(peerChoices.Single(box => ((PeerInfo)box.Tag).ReceivingEnabled == false).IsEnabled == false,
+                "a device that paused incoming requests stays visible but cannot be selected for subnet sharing");
+            foreach (var choice in subnetChoices) choice.IsChecked = false;
+            var validate = typeof(SubnetShareDialog).GetMethod("TryAccept", Hidden)!;
+            Require(!(bool)validate.Invoke(dialog, null)!, "sharing cannot confirm without a subnet selection");
+            subnetChoices[1].IsChecked = true;
+            foreach (var choice in peerChoices) choice.IsChecked = false;
+            Require(!(bool)validate.Invoke(dialog, null)!, "sharing cannot confirm without a recipient");
+            foreach (var choice in peerChoices) choice.IsChecked = true;
+            Require((bool)validate.Invoke(dialog, null)! && dialog.SelectedPeers.Count == 2 && dialog.SelectedSubnets.Count == 1,
+                "a single chosen network can be actively shared to multiple devices while the paused device is excluded");
+            var capacityDialog = new SubnetShareDialog(owner,
+                Enumerable.Range(0, 33).Select(index => new DiscoverySubnet { Cidr = $"10.20.{index}.0/24", Port = 45831 }).ToList(),
+                [(snapshot.Peers[0], snapshot.Peers[0].Name)], new HashSet<string> { snapshot.Peers[0].Fingerprint });
+            try
+            {
+                var capacityRoot = LayoutContent(capacityDialog);
+                Require(capacityDialog.SelectedSubnets.Count == 32 && (bool)validate.Invoke(capacityDialog, null)!,
+                    "more than 32 available networks still open with a valid default selection");
+                foreach (var choice in Visuals<CheckBox>(capacityRoot).Where(box => box.Tag is DiscoverySubnet)) choice.IsChecked = true;
+                Require(!(bool)validate.Invoke(capacityDialog, null)!,
+                    "the subnet chooser blocks offers exceeding the wire protocol capacity before it closes");
+            }
+            finally { capacityDialog.Close(); }
+            var confirm = Visuals<Button>(root).Single(button => Equals(button.Content, "发起分享"));
+            Within(confirm, root, "minimum subnet chooser confirmation");
+            Require(confirm.IsDefault && !dialog.IsVisible && !owner.IsVisible, "subnet chooser has a keyboard action and no visible test window");
+            var scroll = Visuals<ScrollViewer>(root).First();
+            scroll.ScrollToEnd();
+            LayoutContent(dialog);
+            foreach (var choice in peerChoices) Within(choice, scroll, "subnet chooser recipient");
+            Require(scroll.ScrollableWidth <= 1, "minimum subnet chooser needs no horizontal scrolling");
+            SavePreview(dialog, "share-subnets-minimum.png");
+            Set(window, "_busy", true);
+            var submission = (Task)Call(window, "SubmitSubnetShareAsync", dialog.SelectedPeers, dialog.SelectedSubnets)!;
+            Require(submission.IsCompletedSuccessfully, "preview completes subnet submission without starting the daemon");
+            Require(snapshot.Transfers.Count(transfer => transfer.Kind == "subnets" && transfer.Direction == "send") == 2,
+                "each recipient gets an independent subnet share result");
+            Require(Read<IList>(window, "_paths").Cast<object>().SequenceEqual(originalPaths) &&
+                Recipients(window).Select(peer => peer.Fingerprint).SequenceEqual(originalRecipients) &&
+                Control<TextBox>(window, "SummaryBox").Text == "尚未发送的文件说明" && Control<TextBox>(window, "FileSearch").Text == "使用说明" &&
+                Read<bool>(window, "_busy"),
+                "subnet sharing preserves file sources, recipients, summary, search, and an unrelated active file operation");
+            Layout(window, minimum: true);
+            var transfers = Control<StackPanel>(window, "TransferContent");
+            Require(Texts(transfers).Contains("网段分享") && !Visuals<ProgressBar>(transfers).Any() &&
+                !Visuals<Button>(transfers).Any(button => Equals(button.Content, "暂停") || Equals(button.Content, "继续传输")),
+                "subnet results show their own status without file byte progress or resume controls");
+            var cancel = Visuals<Button>(transfers).Where(button => Equals(button.Content, "取消")).ToArray();
+            Require(cancel.Length == 2 && cancel.All(button => button.IsEnabled),
+                "every outgoing pending subnet share offers cancellation independently");
+            SavePreview(window, "transfers-subnet-send-minimum.png");
+            cancel[0].RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
+            Require(snapshot.Transfers.Count(transfer => transfer.Kind == "subnets" && transfer.State == "cancelled") == 1 &&
+                Read<IList>(window, "_paths").Cast<object>().SequenceEqual(originalPaths) &&
+                Control<TextBox>(window, "SummaryBox").Text == "尚未发送的文件说明",
+                "cancelling one subnet share preserves the other recipient and file draft");
+        }
+        finally { dialog?.Close(); owner.Close(); Set(window, "_busy", false); }
+    }
+
+    private static void SubnetReceiving(MainWindow window)
+    {
+        Scenario(window, "subnets");
+        var snapshot = Read<DaemonSnapshot>(window, "_snapshot");
+        var pending = snapshot.PendingSubnets.Single();
+        snapshot.Settings.Devices.Add(new KnownDevice { Fingerprint = pending.SenderFingerprint, Name = pending.SenderName, Trusted = true, AutoAccept = true });
+        snapshot.Pending.Add(new PendingTransfer { Offer = new TransferOffer { Id = "file-pending", SenderName = "文件发送设备", SenderFingerprint = new string('f', 64) } });
+        Call(window, "UpdatePendingNavigation");
+        Require(Control<TextBlock>(window, "TransfersNavLabel").Text == "传输记录 · 2" &&
+            Control<FrameworkElement>(window, "PendingNavBadge").Visibility == Visibility.Visible,
+            "navigation counts subnet and file requests together");
+        snapshot.Pending.Clear();
+        Call(window, "ShowPage", "transfers");
+        var root = Layout(window, minimum: true);
+        var panel = Control<StackPanel>(window, "TransferContent");
+        var scroll = Control<ScrollViewer>(window, "TransfersPage");
+        string text = Texts(panel);
+        Require(text.Contains(pending.SenderName) && text.Contains(pending.Address) && text.Contains(pending.SenderFingerprint) &&
+            pending.Subnets.All(subnet => text.Contains(subnet.Cidr) && text.Contains(subnet.Port.ToString())),
+            "an incoming request displays its sender, source address, full fingerprint, every CIDR and port");
+        var accept = Visuals<Button>(panel).Single(button => Equals(button.Content, "接受网段"));
+        var reject = Visuals<Button>(panel).Single(button => Equals(button.Content, "拒绝"));
+        Require(accept.IsEnabled && reject.IsEnabled && snapshot.PendingSubnets.Count == 1,
+            "trusted file auto-accept permissions still leave subnet requests waiting for an explicit decision");
+        Require(!Visuals<Button>(panel).Any(button => Equals(button.Content, "选择位置并接收") || Equals(button.Content, "打开接收目录")),
+            "subnet receiving does not ask for a file destination");
+        scroll.ScrollToEnd();
+        Layout(window, minimum: true);
+        Within(accept, scroll, "incoming subnet acceptance action");
+        Within(reject, scroll, "incoming subnet rejection action");
+        SavePreview(window, "transfers-subnet-receive-minimum.png");
+        snapshot.Settings.ReceivingEnabled = false;
+        Call(window, "RenderTransfers");
+        Layout(window, minimum: true);
+        Require(!Visuals<Button>(panel).Single(button => Equals(button.Content, "接受网段")).IsEnabled,
+            "the receive toggle blocks subnet acceptance while incoming requests are paused");
+        snapshot.Settings.ReceivingEnabled = true;
+        var rejected = (Task)Call(window, "DecideSubnetsAsync", pending, false)!;
+        Require(rejected.IsCompletedSuccessfully && snapshot.PendingSubnets.Count == 0 &&
+            !snapshot.Settings.DiscoverySubnets.Any(subnet => pending.Subnets.Contains(subnet)),
+            "rejecting a subnet offer does not remember any offered networks");
+        snapshot.PendingSubnets.Add(pending);
+        var accepted = (Task)Call(window, "DecideSubnetsAsync", pending, true)!;
+        Require(accepted.IsCompletedSuccessfully && snapshot.PendingSubnets.Count == 0 &&
+            pending.Subnets.All(subnet => snapshot.Settings.DiscoverySubnets.Contains(subnet)),
+            "accepting explicitly adds every offered subnet to discovery settings");
+        Require(Control<FrameworkElement>(window, "PendingNavBadge").Visibility == Visibility.Collapsed,
+            "the last subnet decision clears the pending navigation badge");
+    }
     private static void PopulateSettings(MainWindow window, bool longContent = false)
     {
         var snapshot = Read<DaemonSnapshot>(window, "_snapshot");
@@ -1694,4 +1876,3 @@ internal static class Program
         if (!condition) throw new InvalidOperationException(message);
     }
 }
-

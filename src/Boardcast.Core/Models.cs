@@ -26,6 +26,7 @@ public sealed record AppSettings
     public List<KnownDevice> Devices { get; set; } = [];
     public List<ReceiveRule> Rules { get; set; } = [];
     public List<IntegrationProfile> Integrations { get; set; } = [];
+    public List<DiscoverySubnet> DiscoverySubnets { get; set; } = [];
 }
 public sealed record KnownDevice
 {
@@ -55,7 +56,23 @@ public sealed record PeerInfo
     public string AppVersion { get; set; } = "";
     public string Runtime { get; set; } = "";
     public int UpdatePort { get; set; }
+    public List<string> Capabilities { get; set; } = [];
     public string UpdateVersion { get; set; } = "";
+    public List<DiscoverySubnet> DiscoverySubnets { get; set; } = [];
+}
+public sealed record DiscoverySubnet
+{
+    public string Cidr { get; set; } = "";
+    public int Port { get; set; } = 45831;
+}
+public sealed record PendingSubnetOffer
+{
+    public string Id { get; set; } = "";
+    public string SenderName { get; set; } = "";
+    public string SenderFingerprint { get; set; } = "";
+    public string Address { get; set; } = "";
+    public List<DiscoverySubnet> Subnets { get; set; } = [];
+    public DateTimeOffset ReceivedAt { get; set; } = DateTimeOffset.UtcNow;
 }
 public sealed record TransferSource
 {
@@ -114,6 +131,7 @@ public sealed record PendingTransfer
 }
 public sealed record TransferProgress
 {
+    public string Kind { get; set; } = "files";
     public string Id { get; set; } = "";
     public string Direction { get; set; } = "send";
     public string PeerName { get; set; } = "";
@@ -138,6 +156,8 @@ public sealed record DaemonSnapshot
     public AppSettings Settings { get; set; } = new();
     public List<PeerInfo> Peers { get; set; } = [];
     public List<PendingTransfer> Pending { get; set; } = [];
+    public List<PendingSubnetOffer> PendingSubnets { get; set; } = [];
+    public List<DiscoverySubnet> LocalDiscoverySubnets { get; set; } = [];
     public List<TransferProgress> Transfers { get; set; } = [];
     public List<string> Diagnostics { get; set; } = [];
 }
@@ -151,6 +171,7 @@ public sealed record IpcRequest
     public int ProcessId { get; set; }
     public List<string> Paths { get; set; } = [];
     public List<TransferSource> Sources { get; set; } = [];
+    public List<DiscoverySubnet> Subnets { get; set; } = [];
     public string TransferId { get; set; } = "";
     public bool Accept { get; set; }
     public string Destination { get; set; } = "";

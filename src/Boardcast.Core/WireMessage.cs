@@ -20,4 +20,5 @@ public sealed record WireMessage
     public string BatchId { get; set; } = "";
     public ChunkGrant? Grant { get; set; }
     public List<PeerInfo> Sources { get; set; } = [];
+    public List<DiscoverySubnet> Subnets { get; set; } = [];
 }

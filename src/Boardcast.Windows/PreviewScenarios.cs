@@ -38,13 +38,19 @@ public partial class MainWindow
             _selectedPeerIds.Add(new string('b', 64));
             if (scenario == "many") _selectedPeerIds.Add(new string('d', 64));
         }
+        if (scenario == "subnets")
+        {
+            _snapshot.LocalDiscoverySubnets = [new() { Cidr = "192.168.1.0/24", Port = 45831 }];
+            _snapshot.Settings.DiscoverySubnets = [new() { Cidr = "192.168.42.0/24", Port = 45831 }, new() { Cidr = "10.20.0.0/24", Port = 45841 }];
+            _snapshot.PendingSubnets = [new()
+            {
+                Id = "preview-subnet-offer", SenderName = "客厅 MacBook", SenderFingerprint = new string('c', 64), Address = "192.168.1.26",
+                Subnets = [new() { Cidr = "172.16.4.0/24", Port = 45831 }, new() { Cidr = "172.16.5.0/24", Port = 45841 }]
+            }];
+        }
         LocalName.Text = _snapshot.Settings.DeviceName;
-        UpdateConnectionUi(); RenderPeerList(); RenderPaths();
+        UpdateConnectionUi(); RenderPeerList(); RenderPaths(); UpdatePendingNavigation();
         if (args.Contains("--preview-note")) { NoteExpander.IsExpanded = true; SummaryBox.Text = "这里是本次发送的补充说明。"; }
         if (scenario == "updates") { _settingsSection = "updates"; ShowPage("settings"); }
     }
 }
-
-
-
-

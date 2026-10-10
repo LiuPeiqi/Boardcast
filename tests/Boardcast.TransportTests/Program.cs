@@ -17,6 +17,12 @@ Directory.CreateDirectory(root);
 using var serverStop = new CancellationTokenSource();
 try
 {
+    if (args.Contains("--subnets-only"))
+    {
+        checks += await SubnetDiscoveryScenarios.RunAsync(root);
+        Console.WriteLine($"All {checks} subnet discovery checks passed.");
+        return;
+    }
     if (args.Contains("--receive-storage-only"))
     {
         checks += await ReceiveStorageScenarios.RunAsync(root);
@@ -216,6 +222,7 @@ try
     cancelServerStop.Cancel();
     try { await cancelListener; } catch (OperationCanceledException) { }
 
+    checks += await SubnetDiscoveryScenarios.RunAsync(root);
     await ExerciseDiscoveryAsync(Check);
     await ExerciseMultiSendAsync(root, Path.Combine(source, "note.txt"), Check);
     checks += await ChunkTransportScenarios.RunAsync(root);

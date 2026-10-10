@@ -11,6 +11,7 @@ public partial class MainWindow
     private void RenderTransfers()
     {
         TransferContent.Children.Clear();
+        RenderPendingSubnets();
         foreach (var pending in _snapshot.Pending)
         {
             var content = new StackPanel();
@@ -41,6 +42,7 @@ public partial class MainWindow
         }
         foreach (var transfer in _snapshot.Transfers.OrderByDescending(t => t.UpdatedAt).Take(60))
         {
+            if (transfer.Kind == "subnets") { RenderSubnetTransfer(transfer); continue; }
             var content = new StackPanel();
             content.Children.Add(Heading($"{(transfer.Direction == "receive" ? "接收自" : "发送至")} {transfer.PeerName}", 18));
             content.Children.Add(Note($"{StateLabel(transfer.State)} · {Size(transfer.BytesTransferred)} / {Size(transfer.TotalBytes)}"));
@@ -63,7 +65,7 @@ public partial class MainWindow
                 actions.Children.Add(Action("打开接收目录", () => { OpenFolder(transfer.Destination); return Task.CompletedTask; }));
             content.Children.Add(actions); TransferContent.Children.Add(Card(content));
         }
-        if (_snapshot.Pending.Count == 0 && _snapshot.Transfers.Count == 0)
+        if (_snapshot.Pending.Count == 0 && _snapshot.PendingSubnets.Count == 0 && _snapshot.Transfers.Count == 0)
         {
             TransferContent.Children.Add(Heading("暂无传输", 22));
         }
@@ -126,4 +128,3 @@ public partial class MainWindow
         using var stream = File.Create(path); encoder.Save(stream); Application.Current.Shutdown();
     }
 }
-

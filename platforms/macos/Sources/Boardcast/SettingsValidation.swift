@@ -3,6 +3,7 @@ import Foundation
 enum SettingsValidation {
     static func validate(_ settings: AppSettings) throws {
         try DeviceGroups.validate(settings)
+        try SubnetValidation.validate(settings.discoverySubnets, allowEmpty: true)
         let name = settings.deviceName.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !name.isEmpty, name.utf16.count <= 256,
               !name.unicodeScalars.contains(where: { CharacterSet.controlCharacters.contains($0) }) else {
@@ -66,6 +67,7 @@ extension SettingsValidation {
         try field(\.maxEntries)
         try field(\.devices)
         try field(\.rules)
+        try field(\.discoverySubnets)
         return result
     }
 }

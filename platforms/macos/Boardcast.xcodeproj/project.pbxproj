@@ -5,6 +5,28 @@
 	};
 	objectVersion = 56;
 	objects = {
+		176CE25D057702DCF8E1746D = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = SubnetDiscoveryTests.swift;
+			sourceTree = "<group>";
+		};
+		93F217E938565D39F1931E7D = {
+			isa = PBXBuildFile;
+			fileRef = 176CE25D057702DCF8E1746D;
+		};
+
+		80794C5F0063B978037A39DE = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = SubnetDiscovery.swift;
+			sourceTree = "<group>";
+		};
+		F2257EB89978754D16E4C72D = {
+			isa = PBXBuildFile;
+			fileRef = 80794C5F0063B978037A39DE;
+		};
+
 		9C6184ABA2ECC6F6E18A85A2 = {
 			isa = PBXFileReference;
 			lastKnownFileType = sourcecode.swift;
@@ -188,6 +210,7 @@
 		3B321D4C1A98E53F25157DEF = {
 			isa = PBXGroup;
 			children = (
+				80794C5F0063B978037A39DE,
 				9C6184ABA2ECC6F6E18A85A2,
 				34181F2534F379412A8F9A84,
 				EB8921B888DF6EC91671DBBE,
@@ -219,6 +242,7 @@
 		C4DF94A42CA730B26E01C133 = {
 			isa = PBXGroup;
 			children = (
+				176CE25D057702DCF8E1746D,
 				D298617A34C41CD1A02925D9,
 				A7461075B2B179FCA9C85000,
 				E7FE2677A906B4D210468E22,
@@ -496,6 +520,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F2257EB89978754D16E4C72D,
 				AC72C6613B5256F2C1728BD3,
 				D29FEF1274680B948D9E8662,
 				7ADEA670B550463512D1EF17,
@@ -566,6 +591,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				93F217E938565D39F1931E7D,
 				26FCC8822E51EFADEA5A9D4A,
 				407274C42FC74037D864D913,
 				1040FF56DF635206C36D069D,

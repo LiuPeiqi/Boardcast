@@ -113,9 +113,10 @@ public partial class MainWindow : Window
             UpdateConnectionUi();
             RenderPeerList();
             RefreshUpdateUi();
+            RefreshSubnetUi();
             if (_page == "transfers") RenderTransfers();
-            TransfersNavLabel.Text = _snapshot.Pending.Count > 0 ? $"传输记录 · {_snapshot.Pending.Count}" : "传输记录";
-            PendingNavBadge.Visibility = _snapshot.Pending.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+            UpdatePendingNavigation();
+
             UpdateSend();
         }
         finally { _refreshing = false; }
@@ -259,6 +260,7 @@ public partial class MainWindow : Window
     private void UpdateSend()
     {
         if (SendButton == null) return;
+        RefreshSubnetUi();
         AddItemsButton.IsEnabled = !_busy;
         AddItemsButton.Visibility = _paths.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
         EmptyFilesActionButton.IsEnabled = !_busy;
@@ -336,7 +338,7 @@ public partial class MainWindow : Window
     private async void ConnectClick(object sender, RoutedEventArgs e)
     {
         var dialog = new EditorDialog(this, "通过 IP 连接");
-        dialog.AddNote("连接后请核对设备指纹。");
+        dialog.AddNote("连接后请核对设备指纹。连接成功后会自动记住对方网段，并查找该网段中的其他邻间设备。");
         var address = dialog.AddText("对方 IP 地址", ""); var port = dialog.AddText("端口", "45831");
         if (dialog.ShowDialog() != true) return;
         if (!int.TryParse(port.Text, out var number) || number is < 1024 or > 65535) { SetStatus("请输入有效端口。"); return; }
@@ -391,10 +393,3 @@ public partial class MainWindow : Window
             (Peer.AppVersion.Length > 0 ? "\n版本：v" + Peer.AppVersion : "");
     }
 }
-
-
-
-
-
-
-

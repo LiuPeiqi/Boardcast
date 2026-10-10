@@ -13,6 +13,7 @@ struct AppSettings: Codable, Sendable, Equatable {
     var maxEntries = 50_000
     var devices: [KnownDevice] = []
     var rules: [ReceiveRule] = []
+    var discoverySubnets: [DiscoverySubnet] = []
 }
 
 struct KnownDevice: Codable, Identifiable, Sendable, Equatable {
@@ -42,6 +43,8 @@ struct PeerInfo: Codable, Identifiable, Sendable {
     var updatePort = 0
     var updateVersion: String? = nil
     var departureHint = false
+    var discoverySubnets: [DiscoverySubnet] = []
+    var capabilities: [String] = []
     var id: String { fingerprint }
 }
 
@@ -50,7 +53,7 @@ struct PeerInfo: Codable, Identifiable, Sendable {
 extension AppSettings {
     private enum CodingKeys: String, CodingKey {
         case version, deviceName, groupName, peerGroupFilter, visibleGroups, receiveDirectory
-        case port, receivingEnabled, maxTransferBytes, maxEntries, devices, rules
+        case port, receivingEnabled, maxTransferBytes, maxEntries, devices, rules, discoverySubnets
     }
     init(from decoder: Decoder) throws {
         self.init()
@@ -67,6 +70,7 @@ extension AppSettings {
         maxEntries = try values.decodeIfPresent(Int.self, forKey: .maxEntries) ?? maxEntries
         devices = try values.decodeIfPresent([KnownDevice].self, forKey: .devices) ?? []
         rules = try values.decodeIfPresent([ReceiveRule].self, forKey: .rules) ?? []
+        discoverySubnets = try values.decodeIfPresent([DiscoverySubnet].self, forKey: .discoverySubnets) ?? []
     }
 }
 
@@ -89,7 +93,7 @@ extension KnownDevice {
 
 extension PeerInfo {
     private enum CodingKeys: String, CodingKey {
-        case fingerprint, name, groupName, platform, address, port, receivingEnabled, lanOnline, appVersion, runtime, updatePort, updateVersion, departureHint
+        case fingerprint, name, groupName, platform, address, port, receivingEnabled, lanOnline, appVersion, runtime, updatePort, updateVersion, departureHint, discoverySubnets, capabilities
     }
     init(from decoder: Decoder) throws {
         let values = try decoder.container(keyedBy: CodingKeys.self)
@@ -106,6 +110,8 @@ extension PeerInfo {
         updatePort = try values.decodeIfPresent(Int.self, forKey: .updatePort) ?? 0
         updateVersion = try values.decodeIfPresent(String.self, forKey: .updateVersion)
         departureHint = try values.decodeIfPresent(Bool.self, forKey: .departureHint) ?? false
+        discoverySubnets = try values.decodeIfPresent([DiscoverySubnet].self, forKey: .discoverySubnets) ?? []
+        capabilities = try values.decodeIfPresent([String].self, forKey: .capabilities) ?? []
     }
 }
 

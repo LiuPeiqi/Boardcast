@@ -2,7 +2,7 @@ param(
     [ValidateSet('win-x64','win-arm64')][string]$Runtime = 'win-x64',
     [switch]$FrameworkDependent,
     [string]$OutputDirectory = '',
-    [string]$Version = '0.2.7',
+    [string]$Version = '0.2.8',
     [string]$SigningKeyPem = '',
     [string]$ReleaseKeyId = 'boardcast-release-1'
 )

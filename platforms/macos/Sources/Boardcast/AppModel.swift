@@ -9,6 +9,7 @@ final class AppModel: ObservableObject {
     @Published private(set) var settings = AppSettings()
     @Published private(set) var peers: [PeerInfo] = []
     @Published private(set) var pending: [PendingOffer] = []
+    @Published private(set) var pendingSubnets: [PendingSubnetOffer] = []
     @Published private(set) var status = L10n.string("正在准备局域网服务")
     @Published private(set) var fingerprint = ""
     @Published private(set) var updates: MacUpdateService?
@@ -31,6 +32,12 @@ final class AppModel: ObservableObject {
     private var started = false
     private var updateStartTask: Task<Void, Never>?
     private var updateObservation: AnyCancellable?
+    private var subnetApprovals: [String: CheckedContinuation<Bool, Never>] = [:]
+    private var subnetTimers: [String: Task<Void, Never>] = [:]
+    private var subnetScanTask: Task<Void, Never>?
+    private var subnetGeneration = UUID()
+    private var ipConnectionTask: Task<PeerInfo, Error>?
+
 
     init() {
         guard ProcessInfo.processInfo.environment["BOARDCAST_TESTING"] != "1" else { return }
@@ -68,6 +75,9 @@ final class AppModel: ObservableObject {
             transport.onOffer = { [weak self] offer, fingerprint, decision in
                 await self?.requestApproval(offer, fingerprint: fingerprint, decision: decision) ?? .reject
             }
+            transport.onSubnetOffer = { [weak self] offer, fingerprint in
+                await self?.requestSubnetApproval(offer, fingerprint: fingerprint) ?? false
+            }
             try transport.start(port: settings.port)
             self.transport = transport
             let discovery = LANDiscovery(message: { self.discoveryMessage() })
@@ -75,8 +85,10 @@ final class AppModel: ObservableObject {
             discovery.onDeparture = { [weak self] peer in Task { @MainActor in self?.markDeparture(peer) } }
             discovery.onTick = { [weak self] in Task { @MainActor in self?.expirePeers() } }
             discovery.onError = { [weak self] message in Task { @MainActor in self?.status = message } }
+            discovery.setSubnets(settings.discoverySubnets)
             try discovery.start()
             self.discovery = discovery
+            restartSubnetProbes()
             let updater = MacUpdateService(identity: identity, dataDirectory: store.directory)
             updates = updater
             updater.onAdvertisement = { [weak self] in
@@ -101,6 +113,7 @@ final class AppModel: ObservableObject {
             try? MacRelease.acknowledgeStartup(bundle: .main)
             status = L10n.string("仅在局域网内等待连接")
         } catch {
+            cancelSubnetProbes()
             updateStartTask?.cancel()
             updateStartTask = nil
             updates?.stop()
@@ -122,6 +135,7 @@ final class AppModel: ObservableObject {
         DiscoveryMessage(fingerprint: fingerprint, name: settings.deviceName,
                          groupName: DeviceGroups.normalized(settings.groupName), port: settings.port,
                          receivingEnabled: settings.receivingEnabled && !terminationPending,
+                         lanOnline: !terminationPending,
                          runtime: updates?.advertisedRuntime,
                          updatePort: terminationPending ? 0 : updates?.advertisedPort ?? 0,
                          updateVersion: terminationPending ? nil : updates?.advertisedVersion)
@@ -130,6 +144,10 @@ final class AppModel: ObservableObject {
     func stop() {
         terminationPending = true
         for request in pending { decide(request, accepted: false) }
+        for request in pendingSubnets { decideSubnet(request, accepted: false) }
+        cancelSubnetProbes()
+        ipConnectionTask?.cancel()
+        ipConnectionTask = nil
         draft.cancelScanning()
         for (id, handle) in sendTasks {
             handle.cancel()
@@ -148,13 +166,17 @@ final class AppModel: ObservableObject {
     }
 
     var hasActiveOperationsAndTasks: Bool {
-        tasks.tasks.contains(where: \.isActive) || !pending.isEmpty || draft.isScanning ||
+        tasks.tasks.contains(where: \.isActive) || !pending.isEmpty || !pendingSubnets.isEmpty || draft.isScanning ||
+        ipConnectionTask != nil ||
         !sendTasks.isEmpty || updateStartTask != nil || transport?.hasActiveConnections == true || updates?.hasActiveOperations == true
     }
 
     func beginWaitingForTermination() {
         terminationPending = true
         for request in pending { decide(request, accepted: false) }
+        for request in pendingSubnets { decideSubnet(request, accepted: false) }
+        cancelSubnetProbes()
+        ipConnectionTask?.cancel()
         transport?.quiesce()
         updates?.quiesce()
         discovery?.setMessage(discoveryMessage())
@@ -166,6 +188,7 @@ final class AppModel: ObservableObject {
         do { try transport?.start(port: settings.port) }
         catch { status = L10n.string(error.localizedDescription) }
         Task { await updates?.resumeSharing() }
+        restartSubnetProbes()
         discovery?.setMessage(discoveryMessage())
         discovery?.announce()
     }
@@ -221,6 +244,7 @@ final class AppModel: ObservableObject {
 
     func cancelTask(_ id: String) {
         if let request = pending.first(where: { $0.id == id }) { decide(request, accepted: false) }
+        if let request = pendingSubnets.first(where: { $0.id == id }) { decideSubnet(request, accepted: false) }
         sendTasks[id]?.cancel()
         transport?.cancel(id: id)
         tasks.finish(id: id, phase: .cancelled, message: L10n.string("已取消本机任务；已保存文件保留。"))
@@ -331,7 +355,13 @@ final class AppModel: ObservableObject {
                 if !value.devices[index].trusted { value.devices[index].autoAccept = false }
             }
             try store.save(value)
+            let subnetsChanged = value.discoverySubnets != settings.discoverySubnets
             settings = value
+            if subnetsChanged {
+                cancelSubnetProbes()
+                discovery?.setSubnets(value.discoverySubnets)
+                restartSubnetProbes()
+            }
             clearHiddenSelection()
             discovery?.setMessage(discoveryMessage())
             discovery?.announce()
@@ -387,6 +417,173 @@ final class AppModel: ObservableObject {
                 }
             }
             status = L10n.format("已为 %lld 台设备创建独立任务。", Int64(recipients.count))
+        } catch { status = L10n.string(error.localizedDescription) }
+    }
+
+    var shareableSubnets: [DiscoverySubnet] {
+        var seen = Set<String>()
+        return (LANDiscovery.localSubnets(port: settings.port) + settings.discoverySubnets)
+            .filter { seen.insert($0.id).inserted }
+            .sorted { $0.id < $1.id }
+    }
+
+    var canShareSubnets: Bool {
+        !terminationPending && transport != nil && !shareableSubnets.isEmpty &&
+            groupedPeers.contains { selectedPeers.contains($0.id) && $0.lanOnline && $0.receivingEnabled &&
+                !$0.departureHint }
+    }
+
+    func addIPPeer(address: String) async {
+        guard !terminationPending, let transport, ipConnectionTask == nil else { return }
+        let host = address.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard LANDiscovery.isReachableHost(host) else {
+            status = L10n.string("请输入可连接的私有 IPv4 地址。")
+            return
+        }
+        let work = Task { try await transport.lookupPeer(address: host) }
+        ipConnectionTask = work
+        defer { ipConnectionTask = nil; objectWillChange.send() }
+        do {
+            let peer = try await work.value
+            guard !terminationPending, !Task.isCancelled else { return }
+            if let learned = SubnetValidation.learned(address: host, advertised: peer.discoverySubnets, port: peer.port) {
+                guard importSubnets([learned]) else { return }
+            }
+            updatePeer(peer)
+            status = L10n.string("已连接设备，正在自动发现该网段内的设备。")
+        } catch { status = L10n.string(error.localizedDescription) }
+    }
+
+    func forgetSubnet(cidr: String, port: Int = 45831) {
+        guard commit({ $0.discoverySubnets.removeAll { $0.cidr == cidr && $0.port == port } }) else { return }
+        // Keep same-interface broadcasts visible; remove only peers admitted through this range.
+        peers.removeAll { peer in
+            !LANDiscovery.isLocal(peer.address) &&
+                !settings.discoverySubnets.contains { $0.port == peer.port && IPv4Subnet($0.cidr)?.contains(peer.address) == true }
+        }
+        clearHiddenSelection()
+        status = L10n.string("已遗忘网段并停止发现。通过 IP 重新连接或接受分享可再次添加。")
+    }
+
+    @discardableResult
+    private func importSubnets(_ values: [DiscoverySubnet]) -> Bool {
+        commit { settings in
+            for value in values where !settings.discoverySubnets.contains(where: { $0.id == value.id }) {
+                settings.discoverySubnets.append(value)
+            }
+        }
+    }
+
+    private func cancelSubnetProbes() {
+        subnetGeneration = UUID()
+        subnetScanTask?.cancel()
+        subnetScanTask = nil
+    }
+
+    /// TLS has a separate streaming cursor so busy slots cannot skip addresses.
+    private func restartSubnetProbes() {
+        guard !terminationPending, subnetScanTask == nil, let transport, !settings.discoverySubnets.isEmpty else { return }
+        let values = settings.discoverySubnets
+        let generation = subnetGeneration
+        subnetScanTask = Task { [weak self] in
+            while !Task.isCancelled {
+                await withTaskGroup(of: PeerInfo?.self) { group in
+                    var scan = SubnetScanCursor(values)
+                    var refreshed: [String: Date] = [:]
+                    func nextTarget() -> (String, Int)? {
+                        // Large ranges take longer than peer expiry. Refresh already discovered
+                        // endpoints through the same bounded TLS slots without learning new ranges.
+                        if let self, let peer = self.peers.first(where: { peer in
+                            let key = peer.address + ":" + String(peer.port)
+                            return Date().timeIntervalSince(self.lastSeen[peer.id] ?? .distantPast) >= 60 &&
+                                Date().timeIntervalSince(refreshed[key] ?? .distantPast) >= 60 &&
+                                values.contains { $0.port == peer.port && IPv4Subnet($0.cidr)?.contains(peer.address) == true }
+                        }) {
+                            refreshed[peer.address + ":" + String(peer.port)] = Date()
+                            return (peer.address, peer.port)
+                        }
+                        return scan.next().map { ($0.address, $0.port) }
+                    }
+                    for _ in 0..<32 {
+                        guard let target = nextTarget() else { break }
+                        group.addTask {
+                            try? await transport.lookupPeer(address: target.0, port: target.1, timeout: 0.75)
+                        }
+                    }
+                    while let result = await group.next() {
+                        guard !Task.isCancelled, let self, !self.terminationPending,
+                              self.subnetGeneration == generation else { group.cancelAll(); break }
+                        if let peer = result { self.updatePeer(peer) }
+                        if let target = nextTarget() {
+                            group.addTask {
+                                try? await transport.lookupPeer(address: target.0, port: target.1, timeout: 0.75)
+                            }
+                        }
+                    }
+                }
+                do { try await Task.sleep(nanoseconds: 60_000_000_000) }
+                catch { return }
+            }
+        }
+    }
+
+    private func requestSubnetApproval(_ offer: SubnetOffer, fingerprint: String) async -> Bool {
+        let request = PendingSubnetOffer(offer: offer, fingerprint: fingerprint)
+        return await withTaskCancellationHandler(operation: {
+            await withCheckedContinuation { continuation in
+                guard !Task.isCancelled, !terminationPending, settings.receivingEnabled,
+                      pending.count + pendingSubnets.count < 2, subnetApprovals[request.id] == nil else {
+                    continuation.resume(returning: false)
+                    return
+                }
+                subnetApprovals[request.id] = continuation
+                pendingSubnets.append(request)
+                subnetTimers[request.id] = Task { @MainActor [weak self] in
+                    do { try await Task.sleep(nanoseconds: 120_000_000_000) }
+                    catch { return }
+                    self?.decideSubnet(request, accepted: false)
+                }
+            }
+        }, onCancel: { [weak self] in
+            Task { @MainActor in self?.decideSubnet(request, accepted: false) }
+        })
+    }
+
+    func decideSubnet(_ request: PendingSubnetOffer, accepted: Bool) {
+        guard let continuation = subnetApprovals.removeValue(forKey: request.id) else { return }
+        subnetTimers.removeValue(forKey: request.id)?.cancel()
+        pendingSubnets.removeAll { $0.id == request.id }
+        let valid = accepted && !terminationPending && settings.receivingEnabled && request.expiresAt > Date()
+        let imported = valid && importSubnets(request.offer.subnets.map(\.wireValue))
+        continuation.resume(returning: imported)
+    }
+
+    func shareSubnetsToSelectedPeers(subnets: [DiscoverySubnet]? = nil) {
+        guard canShareSubnets, let transport else { return }
+        let values = subnets ?? shareableSubnets
+        do {
+            try SubnetValidation.validate(values)
+            let available = Set(shareableSubnets.map(\.id))
+            guard values.allSatisfy({ available.contains($0.id) }) else {
+                throw BoardcastError.invalid(L10n.string("待分享网段已变化，请重新选择。"))
+            }
+            let recipients = groupedPeers.filter {
+                selectedPeers.contains($0.id) && $0.lanOnline && $0.receivingEnabled && !$0.departureHint
+            }
+            guard !recipients.isEmpty, recipients.count <= 32, sendTasks.count + recipients.count <= 128 else {
+                throw BoardcastError.invalid(L10n.string("接收对象或排队任务数量超出限额。"))
+            }
+            for peer in recipients {
+                let id = UUID().uuidString.replacingOccurrences(of: "-", with: "").lowercased()
+                tasks.enqueue(id: id, peer: peer, totalBytes: 0)
+                sendTasks[id] = Task { [weak self] in
+                    defer { self?.sendTasks.removeValue(forKey: id); self?.objectWillChange.send() }
+                    do { try await transport.shareSubnets(values, to: peer, id: id) }
+                    catch is CancellationError { self?.tasks.finish(id: id, phase: .cancelled, message: L10n.string("已取消网段分享。")) }
+                    catch { self?.tasks.finish(id: id, phase: .failed, message: error.localizedDescription) }
+                }
+            }
+            status = L10n.string("已向选定设备发起网段分享，等待对方确认。")
         } catch { status = L10n.string(error.localizedDescription) }
     }
 

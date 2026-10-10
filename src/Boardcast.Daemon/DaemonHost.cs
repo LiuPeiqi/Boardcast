@@ -11,6 +11,7 @@ public sealed partial class DaemonHost : IDisposable
     private readonly IdentityStore identity;
     private readonly DiscoveryService discovery;
     private readonly TransferService transport;
+    private readonly SubnetDiscoveryService subnetDiscovery;
     private readonly PeerUpdateService updates;
     private readonly object updateGate = new();
     private Task? updateDownloadTask;
@@ -39,6 +40,8 @@ public sealed partial class DaemonHost : IDisposable
         updates.SetOnline(settings.LanOnline);
         discovery = new DiscoveryService(LocalPeer, report: ReportDiagnostic, discoveryPort: discoveryPort);
         transport = new TransferService(identity, Settings, LocalPeer, DecideAsync, OnProgress, discovery.Remember);
+        transport.DecideSubnets = DecideSubnetsAsync;
+        subnetDiscovery = new SubnetDiscoveryService(Settings, discovery.ProbeAddressAsync, ProbeSubnetPeerAsync, () => discovery.Peers);
         transport.Diagnostic += ReportDiagnostic;
         updates.Diagnostic += ReportDiagnostic;
         LoadRecoverableSends();
@@ -46,13 +49,13 @@ public sealed partial class DaemonHost : IDisposable
     private static T Clone<T>(T value) => JsonSerializer.Deserialize<T>(JsonSerializer.SerializeToUtf8Bytes(value, BoardcastJson.Options), BoardcastJson.Options)!;
     private void ReportDiagnostic(string message) { diagnostics.Enqueue(message); while (diagnostics.Count > 20) diagnostics.TryDequeue(out _); }
     private AppSettings Settings() { lock (settingsGate) return Clone(settings) with { LanOnline = settings.LanOnline && !updateInstalling }; }
-    private PeerInfo LocalPeer() { lock (settingsGate) return new() { Fingerprint = identity.Fingerprint, Name = settings.DeviceName, GroupName = settings.GroupName, Platform = "windows", Port = settings.Port, ReceivingEnabled = settings.ReceivingEnabled, LanOnline = settings.LanOnline && !updateInstalling, AppVersion = AppRelease.CurrentVersion, Runtime = AppRelease.RuntimeIdentifier, UpdatePort = updates.Port, UpdateVersion = updates.AvailableReleaseVersion }; }
+    private PeerInfo LocalPeer() { lock (settingsGate) return new() { Fingerprint = identity.Fingerprint, Name = settings.DeviceName, GroupName = settings.GroupName, Platform = "windows", Port = settings.Port, ReceivingEnabled = settings.ReceivingEnabled, LanOnline = settings.LanOnline && !updateInstalling, AppVersion = AppRelease.CurrentVersion, Runtime = AppRelease.RuntimeIdentifier, UpdatePort = updates.Port, UpdateVersion = updates.AvailableReleaseVersion, DiscoverySubnets = DiscoverySubnets.LocalInterfaces(settings.Port, advertiseActual: true) }; }
     public async Task RunAsync(CancellationToken ct)
     {
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(ct, stopped.Token);
         using var single = new FileStream(Path.Combine(store.DataDirectory, "daemon.lock"), FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
         var token = linked.Token;
-        var tasks = new[] { transport.RunAsync(token), discovery.RunAsync(token), updates.RunAsync(token), IpcServer.RunAsync(store.DataDirectory, HandleAsync, token) };
+        var tasks = new[] { transport.RunAsync(token), discovery.RunAsync(token), subnetDiscovery.RunAsync(token), updates.RunAsync(token), IpcServer.RunAsync(store.DataDirectory, HandleAsync, token) };
         try { await Task.WhenAny(tasks); linked.Cancel(); await Task.WhenAll(tasks); }
         catch (OperationCanceledException) when (linked.IsCancellationRequested) { }
         finally
@@ -71,7 +74,7 @@ public sealed partial class DaemonHost : IDisposable
             foreach (var entry in transfers.Values.Where(t => !t.CanResume && t.State is ("completed" or "cancelled" or "rejected" or "failed")).OrderBy(t => t.UpdatedAt).Take(50))
                 transfers.TryRemove(entry.Id, out _);
     }
-    private DaemonSnapshot Snapshot() => new() { AppVersion = AppRelease.CurrentVersion, Update = updates.Status, Fingerprint = identity.Fingerprint, Settings = Settings(), Peers = discovery.Peers, Pending = pending.Values.Select(p => Clone(p.Item)).ToList(), Transfers = transfers.Values.OrderByDescending(t => t.UpdatedAt).Select(t => t with { }).ToList(), Diagnostics = diagnostics.ToList() };
+    private DaemonSnapshot Snapshot() => new() { AppVersion = AppRelease.CurrentVersion, Update = updates.Status, Fingerprint = identity.Fingerprint, Settings = Settings(), Peers = discovery.Peers, Pending = pending.Values.Select(p => Clone(p.Item)).ToList(), PendingSubnets = pendingSubnets.Values.Select(p => Clone(p.Item)).ToList(), LocalDiscoverySubnets = DiscoverySubnets.LocalInterfaces(Settings().Port), Transfers = transfers.Values.OrderByDescending(t => t.UpdatedAt).Select(t => t with { }).ToList(), Diagnostics = diagnostics.ToList() };
     public async Task<IpcResponse> HandleAsync(IpcRequest request)
     {
         try
@@ -88,7 +91,15 @@ public sealed partial class DaemonHost : IDisposable
                     await SetOnlineAsync(request.LanOnline);
                     return new() { Snapshot = Snapshot() };
                 case "connect":
-                    await transport.ConnectAsync(request.Address, request.Port, request.Peer?.Fingerprint, stopped.Token);
+                    var connected = await transport.ConnectAsync(request.Address, request.Port, request.Peer?.Fingerprint, stopped.Token);
+                    await LearnConnectedSubnetAsync(connected);
+                    return new() { Snapshot = Snapshot() };
+                case "subnet-forget":
+                    await ForgetSubnetsAsync(request.Subnets);
+                    return new() { Snapshot = Snapshot() };
+                case "subnet-share": return StartSubnetShares(request);
+                case "subnet-decide":
+                    await DecideSubnetRequestAsync(request.TransferId, request.Accept);
                     return new() { Snapshot = Snapshot() };
                 case "send": return StartSends(request, multiple: false);
                 case "send-many": return StartSends(request, multiple: true);
@@ -164,7 +175,7 @@ public sealed partial class DaemonHost : IDisposable
             });
         }
     }
-    private bool HasActiveTransfers() => transport.HasActiveRelayRequests || !outgoing.IsEmpty || !pending.IsEmpty || transfers.Values.Any(t => t.State is "preparing" or "queued" or "waiting" or "sending" or "pending" or "receiving");
+    private bool HasActiveTransfers() => transport.HasActiveRelayRequests || !outgoing.IsEmpty || !pending.IsEmpty || !pendingSubnets.IsEmpty || transfers.Values.Any(t => t.State is "preparing" or "queued" or "waiting" or "sending" or "pending" or "receiving");
     private async Task InstallUpdateAsync(int uiProcessId)
     {
         await settingsCommands.WaitAsync(stopped.Token);
@@ -208,7 +219,12 @@ public sealed partial class DaemonHost : IDisposable
     private async Task ApplySettingsAsync(AppSettings updated)
     {
         await settingsCommands.WaitAsync(stopped.Token);
-        try { await ApplySettingsCoreAsync(updated); }
+        try
+        {
+            // Permission changes use the explicit IP/accept/forget commands; stale settings editors must not restore forgotten ranges.
+            updated.DiscoverySubnets = Settings().DiscoverySubnets;
+            await ApplySettingsCoreAsync(updated);
+        }
         finally { settingsCommands.Release(); }
     }
     private async Task ApplySettingsCoreAsync(AppSettings updated)
@@ -227,7 +243,11 @@ public sealed partial class DaemonHost : IDisposable
                 if (!transfers.TryGetValue(entry.Key, out var state) || state.State is "preparing" or "queued" or "waiting")
                     try { entry.Value.Cancel(); } catch (ObjectDisposedException) { }
             foreach (var entry in pending.Values) entry.Completion.TrySetResult(new(false, "", "局域网连接已断开。"));
+            foreach (var entry in pendingSubnets.Values) entry.Completion.TrySetResult(new(false, "", "局域网连接已断开。"));
         }
+        if (!updated.ReceivingEnabled)
+            foreach (var entry in pendingSubnets.Values) entry.Completion.TrySetResult(new(false, "", "接收已暂停。"));
+        subnetDiscovery.Refresh();
         updates.SetOnline(updated.LanOnline);
         await discovery.StateChangedAsync(wasOnline, stopped.Token);
     }
@@ -359,7 +379,7 @@ public sealed partial class DaemonHost : IDisposable
         }
         catch (Exception ex) { diagnostics.Enqueue(ex.Message); while (diagnostics.Count > 20) diagnostics.TryDequeue(out _); }
     }
-    public void Dispose() { stopped.Cancel(); discovery.Dispose(); updates.Dispose(); identity.Dispose(); stopped.Dispose(); }
+    public void Dispose() { stopped.Cancel(); subnetDiscovery.Dispose(); discovery.Dispose(); updates.Dispose(); identity.Dispose(); stopped.Dispose(); }
 }
 
 

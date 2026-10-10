@@ -14,6 +14,7 @@ struct SettingsView: View {
                 ReceiveRulesEditor(model: model, rules: $draft.rules, devices: draft.devices, configuration: draft)
                     .tabItem { Label { Text("接收规则", bundle: ResourceBundle.resources) } icon: { Image(systemName: "line.3.horizontal.decrease.circle") } }
                 devices.tabItem { Label { Text("设备与信任", bundle: ResourceBundle.resources) } icon: { Image(systemName: "desktopcomputer") } }
+                subnets.tabItem { Label { Text("网段发现", bundle: ResourceBundle.resources) } icon: { Image(systemName: "network") } }
                 updates.tabItem { Label { Text("更新", bundle: ResourceBundle.resources) } icon: { Image(systemName: "arrow.down.circle") } }
                 about.tabItem { Label { Text("关于", bundle: ResourceBundle.resources) } icon: { Image(systemName: "info.circle") } }
             }
@@ -32,6 +33,10 @@ struct SettingsView: View {
             }.padding(16)
         }.frame(minWidth: 640, idealWidth: 700, minHeight: 560, idealHeight: 600)
         .onAppear { draft = model.settings; baseline = model.settings; saveMessage = nil }
+        .onChange(of: model.settings.discoverySubnets) { _ in
+            draft.discoverySubnets = model.settings.discoverySubnets
+            baseline.discoverySubnets = model.settings.discoverySubnets
+        }
     }
     private var general: some View {
         ScrollView {
@@ -109,6 +114,42 @@ struct SettingsView: View {
                     }
                 }.formStyle(.grouped)
             }
+        }
+    }
+    private var subnets: some View {
+        ScrollView {
+            Form {
+                Section {
+                    Text("通过 IP 连接设备或接受网段共享后，将自动保存网段并持续发现其中的 Boardcast 设备。", bundle: ResourceBundle.resources)
+                        .font(.caption).foregroundStyle(.secondary)
+                    if model.settings.discoverySubnets.isEmpty {
+                        Text("尚未保存发现网段", bundle: ResourceBundle.resources).foregroundStyle(.secondary)
+                    }
+                    ForEach(model.settings.discoverySubnets) { subnet in
+                        HStack(spacing: 12) {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(verbatim: subnet.cidr)
+                                    .font(.system(.body, design: .monospaced)).textSelection(.enabled)
+                                Text(verbatim: L10n.format("端口：%d", subnet.port)).font(.caption).foregroundStyle(.secondary)
+                                if !subnet.seedAddress.isEmpty {
+                                    Text(verbatim: L10n.format("连接地址：%@", subnet.seedAddress)).font(.caption).foregroundStyle(.secondary)
+                                }
+                            }
+                            Spacer()
+                            Button(role: .destructive) {
+                                model.forgetSubnet(cidr: subnet.cidr, port: subnet.port)
+                                draft.discoverySubnets = model.settings.discoverySubnets
+                                baseline.discoverySubnets = model.settings.discoverySubnets
+                                saveMessage = model.status
+                            } label: { Text("遗忘网段", bundle: ResourceBundle.resources) }
+                        }
+                    }
+                } header: { Text("已保存的发现网段", bundle: ResourceBundle.resources) }
+                Section {
+                    Text("遗忘立即生效，不会应用其它尚未保存的设置。以后再次通过 IP 连接该网段设备或接受共享时，可重新添加网段。", bundle: ResourceBundle.resources)
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+            }.formStyle(.grouped)
         }
     }
     @ViewBuilder

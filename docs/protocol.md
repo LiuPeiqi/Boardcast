@@ -6,7 +6,7 @@ This specification describes the Windows 0.2.4 transport in `Boardcast.Core`: pr
 
 - No account server, relay, STUN, TURN, NAT traversal, internet lookup or WAN endpoint.
 - The TCP listener accepts loopback, RFC1918 IPv4, IPv4 link-local, IPv6 ULA and IPv6 link-local. IPv4-mapped IPv6 is normalized. Outgoing manual connections require a literal allowed IP, so hostnames cannot cause external DNS queries.
-- UDP discovery uses IPv4 port **45831**, TTL **1**, local subnet broadcasts, startup/reconnect announce plus probe, active network-availability probes, and one announcement every **60 seconds** while LAN-online. An explicit Discover action emits a probe. There is no continuous scan.
+- UDP discovery uses IPv4 port **45831**, TTL **1**, local subnet broadcasts, startup/reconnect announce plus probe, active network-availability probes, and one announcement every **60 seconds** while LAN-online. An explicit Discover action emits a probe. Saved private IPv4 subnets also receive bounded unicast probes as described below.
 - TCP uses the advertised port; default **45831**. Listening port changes require daemon restart with `--port`.
 - Discovery packets are unauthenticated hints. Trust and subsequent file sending are pinned to the TLS certificate fingerprint, never to a name, IP address or discovery claim. First-time manual IP probing obtains the identity but does not mark it trusted.
 - Announcement/probe datagrams are UTF-8 JSON, maximum 2048 bytes:
@@ -18,6 +18,24 @@ This specification describes the Windows 0.2.4 transport in `Boardcast.Core`: pr
 `type` is `probe`, `announce` or `goodbye`. Optional fields include `groupName`, `lanOnline`, `appVersion`, `runtime`, `updatePort`, and `updateVersion`. An endpoint-matched goodbye sets an unauthenticated `departureHint`; it never deletes a certificate identity or refreshes its lifetime. The received datagram source supplies the address. A probe receives a rate-limited announcement. Peers expire after 150 seconds.
 
 `groupName` is an optional string in discovery and hello `peer`. Missing or empty values select name-prefix inference. Explicit names are trimmed, contain no control characters and are limited to 80 UTF-16 code units. Inferred groups split the original device name on `-`, `_`, `.`, or whitespace and take the first nonempty segment (or `未分组` if empty); comparisons ignore case. Per-user known-device overrides and `peerGroupFilter` / `visibleGroups` preferences stay local and are never broadcast. Group metadata does not establish trust or grant receiving/relay privileges. Filtering does not remove peers from the daemon snapshot or update catalog. Legacy protocol v1 readers ignore the optional field.
+
+## Remembered subnet discovery and sharing
+
+A successful explicit IP connection may persist the private IPv4 subnet containing the authenticated socket endpoint. The optional hello `peer.discoverySubnets` array contains interface hints as `{ "cidr": "192.168.20.0/24", "port": 45831 }`. Only a CIDR containing the connected IP is learned; older peers without this field use the connected IP's `/24`. UDP hints and ordinary file connections do not automatically persist subnets or create trust.
+
+Only an explicit authenticated IP connection or explicit local acceptance authorizes remembered-subnet probing. Ordinary UDP discovery, file hellos, and unapproved subnet offers cannot expand that scope. Sharing selects from current local interfaces or already remembered ranges; there is no NAT mapping or traversal. Saved entries contain a canonical RFC1918 IPv4 CIDR with prefix `/16` through `/32` and a TCP port from 1024 through 65535. At most 32 entries are accepted; public, loopback, link-local and IPv6 ranges are rejected. An interface wider than `/16` falls back to the seed `/24`. `/31` and `/32` include all addresses; other prefixes omit network/broadcast addresses. The daemon publishes local interface subnets separately from remembered entries so users may share either.
+
+Remembered subnets are probed by rate-limited UDP unicast on discovery port 45831, with TTL 64; local broadcasts retain TTL 1. A probe receives an announcement directed back to its source, as well as any legacy local broadcast behavior. TCP hello probing supports devices whose UDP discovery is unavailable. Each complete sweep waits 60 seconds before the next. Forget/offline/shutdown cancel the relevant work and suppress late observations. Discovered identities retain normal 150-second expiry and never gain trust from subnet membership.
+
+Subnet sharing is an optional `subnet-sharing-v1` hello capability on the existing mTLS file port. The sender pins the selected fingerprint, completes hello, and requires the remote capability before sending:
+
+```json
+{"type":"subnet-offer","version":1,"transferId":"32 lowercase GUID hex characters","subnets":[{"cidr":"192.168.20.0/24","port":45831}]}
+```
+
+The receiver validates the authenticated sender, ID, range/port limits and online/receiving state, then responds `subnet-pending` with the same `transferId` while requesting explicit local approval. File trust/rules never automatically accept subnet data. Approval expires after 120 seconds. After successful persistence, the receiver responds `subnet-accept`; rejection or inability to save responds `subnet-reject`, with the same `transferId` and an optional `message`. No file payload or destination directory follows. Each recipient has an independent request/result, and no confirmation causes propagation to further peers.
+
+Current-user IPC adds `subnet-share` (`peers`, `subnets`), `subnet-forget` (`subnets`), and `subnet-decide` (`transferId`, `accept`). Snapshots include `localDiscoverySubnets`, settings `discoverySubnets`, and separate `pendingSubnets` approval items. Transfer records use `kind: "subnets"`. Omitting new fields preserves legacy decoding; unsupported peers receive no subnet offer.
 
 ## Persistent identity and TLS
 

@@ -2,11 +2,11 @@
 
 面向局域网的文件和文件夹传输。Windows 原生界面、独立网络后台、设备备注与信任，以及可选的本机 CLI / MCP 扩展。
 
-**项目状态：0.2.7，文件项按宽度自适应单行或两行。** 本次更新日期为 2026-10-09；构建、测试和实际覆盖范围见 [验证记录](docs/verification.md)。macOS 是独立 Swift 实现，此前同步分组源码但尚未在 Mac 构建验证；本次操作精简针对 Windows，其他 Windows 功能也尚未完整移植，交付状态见 [macOS 说明](platforms/macos/README.md)。
+**项目状态：Windows 0.2.8，新增已许可网段发现、遗忘和多设备分享。** 本次更新日期为 2026-10-10；构建、测试和实际覆盖范围见 [验证记录](docs/verification.md)。macOS 是独立 Swift 实现，本次同步网段功能源码，由 Mac 环境构建与验收，交付状态见 [macOS 说明](platforms/macos/README.md)。
 
-**Windows 正式分发：** [0.2.7 完整签名包](dist/Boardcast-win-x64-0.2.7.zip) 与 [SHA-256 校验文件](dist/Boardcast-win-x64-0.2.7.zip.sha256)，沿用原有发行公钥。大文件使用 Git LFS，克隆前请安装 [Git LFS](https://git-lfs.com/)。分发目录说明见 [dist/README.md](dist/README.md)；签名与密钥保管见 [签名发行说明](docs/signed-release.md)。
+**Windows 正式分发：** [0.2.8 完整签名包](dist/Boardcast-win-x64-0.2.8.zip) 与 [SHA-256 校验文件](dist/Boardcast-win-x64-0.2.8.zip.sha256)，沿用原有发行公钥。大文件使用 Git LFS，克隆前请安装 [Git LFS](https://git-lfs.com/)。分发目录说明见 [dist/README.md](dist/README.md)；签名与密钥保管见 [签名发行说明](docs/signed-release.md)。
 
-Windows 0.2.7 签名发行包包含自适应文件行、单行设备工具栏、单行设备列表、空列表点击添加和按需显示的文件操作。macOS 后续设计见 [产品与界面方案](docs/macos-design.md)，本地编写、构建与验收见 [Mac 开发交接](platforms/macos/DEVELOPMENT.md)。
+Windows 0.2.8 签名发行包在显式 IP 连接成功后学习网段并发现设备，支持在设置中遗忘，以及向选定设备分享网段，由接收方明确接受。仅探测已许可的私有 IPv4 网段，不增加 NAT 映射或穿透；说明见 [网段发现与分享](docs/subnet-discovery.md)。保留自适应文件行、单行设备列表和按需文件操作。macOS 后续设计见 [产品与界面方案](docs/macos-design.md)，本地编写、构建与验收见 [Mac 开发交接](platforms/macos/DEVELOPMENT.md)。
 
 Android 手机和平板目前仅完成设计：[界面与操作方案](docs/android-design.md)、[文件与目录存储规范](docs/android-storage-design.md)。尚未创建 Android 工程或安装包。
 
@@ -48,6 +48,10 @@ Android 手机和平板目前仅完成设计：[界面与操作方案](docs/andr
 断开连接会停止新的发送和接收，取消尚未开始或等待批准的发送；已经接受的传输可继续完成。接收开关与局域网连接相互独立。广播下线信息只提供未认证的离开提示，不能据此建立或删除设备信任，详见 [多设备发送与连接](docs/multi-recipient-transfer.md)。
 
 多设备发送复用一份文件清单，每个目标使用独立加密连接，全局最多四路并发，其他目标排队。新版设备通过共用分块引擎支持传输恢复，并在符合条件的多设备大文件传输中尝试授权 P2P；旧设备继续使用原有加密流。慢速、缺块或离线来源会回退原发送方。实际速度取决于网络和磁盘，不承诺固定加速比例；见 [多设备传输说明](docs/multi-recipient-transfer.md)。
+
+### 网段发现与分享
+
+Windows 和 macOS 支持通过 IP 连接学习网段，并自动发现该网段中的邻间设备。Windows 常规设置、Mac 网段发现设置可遗忘已保存网段；附近设备的“分享网段”可向一台或多台设备发送本机接口或已保存网段，对方明确接受后才启用发现。不同 AP 之间仍须允许单播 IP 通信。范围、兼容与验证边界见 [网段发现与分享](docs/subnet-discovery.md)。
 
 ### 局域网版本更新
 
@@ -156,6 +160,3 @@ dotnet run --project tests/Boardcast.LayoutTests -c Release -- --render-preview
 - [验证记录与当前限制](docs/verification.md)
 
 本版协议独立于 AirDrop、LocalSend，不宣称与它们直接互通。AirDrop 用于交互参考，不把 Apple 的专有无线协议当成跨平台基础。
-
-
-

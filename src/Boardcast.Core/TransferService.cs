@@ -65,7 +65,7 @@ public sealed partial class TransferService
             finally { client.Dispose(); slots.Release(); }
         }
     }
-    public async Task<PeerInfo> ConnectAsync(string address, int port, string? expectedFingerprint, CancellationToken ct)
+    public async Task<PeerInfo> ConnectAsync(string address, int port, string? expectedFingerprint, CancellationToken ct, bool rememberPeer = true)
     {
         EnsureOnline();
         using var client = new TcpClient(LanAddress.Parse(address).AddressFamily);
@@ -78,7 +78,8 @@ public sealed partial class TransferService
         EnsureOnline();
         if (!peer.LanOnline) throw new InvalidOperationException("对方已断开局域网连接。");
         await WireProtocol.WriteAsync(tls, new WireMessage { Type = "bye" }, timeout.Token);
-        remember(peer);
+        ct.ThrowIfCancellationRequested();
+        if (rememberPeer) remember(peer);
         return peer;
     }
     public async Task SendAsync(TransferPlan plan, PeerInfo peer, CancellationToken ct)
@@ -237,11 +238,12 @@ public sealed partial class TransferService
         var hello = await WireProtocol.ReadAsync<WireMessage>(tls, timer.Token);
         ValidateHello(hello, authenticatedFingerprint);
         EnsureOnline();
-        var peer = hello.Peer! with { Address = address, Fingerprint = authenticatedFingerprint, LastSeen = DateTimeOffset.UtcNow };
+        var peer = hello.Peer! with { Address = address, Fingerprint = authenticatedFingerprint, LastSeen = DateTimeOffset.UtcNow, Capabilities = hello.Capabilities };
         remember(peer);
-        await WireProtocol.WriteAsync(tls, new WireMessage { Type = "hello", Peer = localPeer(), Capabilities = [ChunkCapability, ReceiveCancellationCapability] }, timer.Token);
+        await WireProtocol.WriteAsync(tls, new WireMessage { Type = "hello", Peer = localPeer(), Capabilities = [ChunkCapability, ReceiveCancellationCapability, SubnetSharingCapability] }, timer.Token);
         var message = await WireProtocol.ReadAsync<WireMessage>(tls, timer.Token);
         if (message.Type == "bye") return;
+        if (message.Type == "subnet-offer") { await ReceiveSubnetsAsync(tls, message, peer, timer); return; }
         if (message.Type == "transfer-cancel") { await HandleReceiveCancellationAsync(tls, message, authenticatedFingerprint, timer.Token); return; }
         if (message.Type == "chunk-authorize") { await ConfirmChunkAuthorizationAsync(tls, message, authenticatedFingerprint, timer.Token); return; }
         if (message.Type == "chunk-revoke") { await RevokeChunkAuthorizationAsync(tls, message, authenticatedFingerprint, timer.Token); return; }
@@ -438,12 +440,12 @@ public sealed partial class TransferService
     }
     private async Task<PeerInfo> ExchangeHello(SslStream tls, string address, CancellationToken ct, Action<WireMessage>? received = null)
     {
-        await WireProtocol.WriteAsync(tls, new WireMessage { Type = "hello", Peer = localPeer(), Capabilities = [ChunkCapability, ReceiveCancellationCapability] }, ct);
+        await WireProtocol.WriteAsync(tls, new WireMessage { Type = "hello", Peer = localPeer(), Capabilities = [ChunkCapability, ReceiveCancellationCapability, SubnetSharingCapability] }, ct);
         var response = await WireProtocol.ReadAsync<WireMessage>(tls, ct);
         string fingerprint = IdentityStore.GetFingerprint(tls.RemoteCertificate!);
         ValidateHello(response, fingerprint);
         received?.Invoke(response);
-        return response.Peer! with { Fingerprint = fingerprint, Address = address, LastSeen = DateTimeOffset.UtcNow };
+        return response.Peer! with { Fingerprint = fingerprint, Address = address, LastSeen = DateTimeOffset.UtcNow, Capabilities = response.Capabilities };
     }
     private static void ValidateHello(WireMessage message, string fingerprint)
     {
@@ -453,6 +455,8 @@ public sealed partial class TransferService
             !DeviceGroups.IsValidGroupName(peer.GroupName) ||
             peer.Platform is null || peer.Platform.Length > 128 || peer.AppVersion is null || peer.AppVersion.Length > 64 ||
             peer.Runtime is null || peer.Runtime.Length > 64 || peer.UpdateVersion is null || peer.UpdateVersion.Length > 64 ||
+            peer.DiscoverySubnets is null || peer.DiscoverySubnets.Count > DiscoverySubnets.MaximumCount ||
+            peer.DiscoverySubnets.Any(subnet => subnet is null || subnet.Cidr is null || subnet.Cidr.Length > 32 || subnet.Port is < 1024 or > 65535) ||
             (peer.UpdatePort != 0 && peer.UpdatePort is < 1024 or > 65535))
             throw new InvalidDataException("Invalid authenticated hello.");
         peer.GroupName = peer.GroupName.Trim();

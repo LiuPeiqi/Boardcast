@@ -16,12 +16,13 @@ struct DiscoveryMessage: Sendable {
     var runtime: String? = nil
     var updatePort = 0
     var updateVersion: String? = nil
+    var capabilities: [String] = [SubnetValidation.capability]
 }
 
 extension DiscoveryMessage: Codable {
     private enum CodingKeys: String, CodingKey {
         case protocolVersion, type, fingerprint, name, groupName, platform, port, receivingEnabled
-        case lanOnline, appVersion, runtime, updatePort, updateVersion
+        case lanOnline, appVersion, runtime, updatePort, updateVersion, capabilities
     }
 
     func encode(to encoder: Encoder) throws {
@@ -40,6 +41,7 @@ extension DiscoveryMessage: Codable {
         // A missing update port means "no update offer". Encoding 0 would invent one.
         if updatePort != 0 { try values.encode(updatePort, forKey: .updatePort) }
         try values.encodeIfPresent(updateVersion, forKey: .updateVersion)
+        if !capabilities.isEmpty { try values.encode(capabilities, forKey: .capabilities) }
     }
 
     init(from decoder: Decoder) throws {
@@ -57,10 +59,11 @@ extension DiscoveryMessage: Codable {
         runtime = try values.decodeIfPresent(String.self, forKey: .runtime)
         updatePort = try values.decodeIfPresent(Int.self, forKey: .updatePort) ?? 0
         updateVersion = try values.decodeIfPresent(String.self, forKey: .updateVersion)
+        capabilities = try values.decodeIfPresent([String].self, forKey: .capabilities) ?? []
     }
 }
 
-/// IPv4 broadcasts on physical Wi-Fi/Ethernet interfaces, with no DNS or routed discovery.
+/// Physical-interface broadcasts plus bounded unicast probes of explicitly learned private subnets.
 /// All mutable state, including callback registration, belongs to `queue`.
 final class LANDiscovery: @unchecked Sendable {
     static let discoveryPort = 45831
@@ -73,7 +76,17 @@ final class LANDiscovery: @unchecked Sendable {
     private var source: DispatchSourceRead?
     private var socketClosure: DispatchGroup?
     private var timer: DispatchSourceTimer?
-    private var lastProbeReply = Date.distantPast
+    private var lastProbeReply: [String: Date] = [:]
+    private var scanTimer: DispatchSourceTimer?
+    private var scanRanges: [String: ScanRange] = [:]
+    private var scanCursor = 0
+
+    private struct ScanRange {
+        let value: DiscoverySubnet
+        let subnet: IPv4Subnet
+        var next: UInt32
+        var restartAt = Date.distantPast
+    }
     private var currentMessage: DiscoveryMessage
     private var peerCallback: (@Sendable (PeerInfo) -> Void)?
     private var departureCallback: (@Sendable (PeerInfo) -> Void)?
@@ -147,6 +160,28 @@ final class LANDiscovery: @unchecked Sendable {
         return result
     }
 
+    static func isReachableHost(_ host: String) -> Bool {
+        isLocal(host) || IPv4Subnet.isPrivateHost(host)
+    }
+
+    static func localSubnets(port: Int, forSharing: Bool = true) -> [DiscoverySubnet] {
+        var seen = Set<String>()
+        return interfaces().compactMap { item in
+            let address = UInt32(bigEndian: item.address)
+            let mask = UInt32(bigEndian: item.mask)
+            let prefix = mask.nonzeroBitCount
+            guard mask == UInt32.max << (32 - prefix), IPv4Subnet.isPrivate(address) else { return nil }
+            let raw = IPv4Subnet.address(address & mask) + "/" + String(prefix)
+            let cidr: String
+            if forSharing {
+                guard let subnet = IPv4Subnet(raw) ?? IPv4Subnet.fallback(for: IPv4Subnet.address(address)) else { return nil }
+                cidr = subnet.cidr
+            } else { cidr = raw }
+            guard seen.insert(cidr).inserted else { return nil }
+            return DiscoverySubnet(cidr: cidr, port: port)
+        }
+    }
+
     static func isLocal(_ host: String) -> Bool { isLocal(host, interfaces: interfaces()) }
 
     static func isLocal(_ host: String, interfaces: [Interface]) -> Bool {
@@ -216,7 +251,12 @@ final class LANDiscovery: @unchecked Sendable {
         }
         timer = clock
         clock.resume()
-        lastProbeReply = .distantPast
+        lastProbeReply.removeAll()
+        let scanner = DispatchSource.makeTimerSource(queue: queue)
+        scanner.schedule(deadline: .now(), repeating: 1, leeway: .milliseconds(100))
+        scanner.setEventHandler { [weak self] in self?.scanBatch() }
+        scanTimer = scanner
+        scanner.resume()
         broadcast()
         broadcast(type: "probe")
     }
@@ -229,6 +269,7 @@ final class LANDiscovery: @unchecked Sendable {
             broadcast(type: "goodbye")
             socketFD = -1
             timer?.cancel(); timer = nil
+            scanTimer?.cancel(); scanTimer = nil
             source?.cancel(); source = nil
             let closure = socketClosure
             socketClosure = nil
@@ -241,6 +282,68 @@ final class LANDiscovery: @unchecked Sendable {
 
     func announce() { queue.async { [weak self] in self?.broadcast() } }
     func probe() { queue.async { [weak self] in self?.broadcast(type: "probe") } }
+
+    /// Replacing ranges cancels forgotten work immediately on the owning queue.
+    func setSubnets(_ values: [DiscoverySubnet]) {
+        withQueue {
+            var updated: [String: ScanRange] = [:]
+            for value in values {
+                guard let subnet = IPv4Subnet(value.cidr) else { continue }
+                updated[value.id] = scanRanges[value.id] ?? ScanRange(value: value, subnet: subnet, next: subnet.firstHost)
+            }
+            scanRanges = updated
+        }
+    }
+
+    private func scanBatch() {
+        guard socketFD >= 0, currentMessage.lanOnline, !scanRanges.isEmpty else { return }
+        let keys = scanRanges.keys.sorted()
+        var count = 0
+        var misses = 0
+        while count < 128, misses < keys.count {
+            let key = keys[scanCursor % keys.count]
+            scanCursor = (scanCursor + 1) % keys.count
+            guard var range = scanRanges[key], range.restartAt <= Date() else { misses += 1; continue }
+            if range.next > range.subnet.lastHost {
+                range.next = range.subnet.firstHost
+                range.restartAt = Date().addingTimeInterval(60)
+                scanRanges[key] = range
+                misses += 1
+                continue
+            }
+            let host = IPv4Subnet.address(range.next)
+            range.next += 1
+            scanRanges[key] = range
+            sendUnicast(type: "probe", address: host)
+            count += 1
+            misses = 0
+        }
+    }
+
+    private func sendUnicast(type: String, address: String) {
+        guard socketFD >= 0, let number = IPv4Subnet.parseAddress(address) else { return }
+        var packet = currentMessage
+        packet.type = type
+        packet.appVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String
+        guard let data = try? JSONEncoder().encode(packet), data.count <= Self.maximumPacketBytes else { return }
+        do {
+            try Self.setOption(socketFD, level: IPPROTO_IP, name: IP_BOUND_IF, value: 0)
+            try Self.setOption(socketFD, level: IPPROTO_IP, name: IP_TTL, value: 64)
+            defer { try? Self.setOption(socketFD, level: IPPROTO_IP, name: IP_TTL, value: 1) }
+            var target = sockaddr_in()
+            target.sin_len = UInt8(MemoryLayout<sockaddr_in>.size)
+            target.sin_family = sa_family_t(AF_INET)
+            target.sin_port = UInt16(Self.discoveryPort).bigEndian
+            target.sin_addr.s_addr = number.bigEndian
+            _ = data.withUnsafeBytes { bytes in
+                withUnsafePointer(to: &target) { pointer in
+                    pointer.withMemoryRebound(to: sockaddr.self, capacity: 1) {
+                        sendto(socketFD, bytes.baseAddress, bytes.count, 0, $0, socklen_t(MemoryLayout<sockaddr_in>.size))
+                    }
+                }
+            }
+        } catch { errorCallback?(error.localizedDescription) }
+    }
 
     private static func socketFailure(_ operation: String, code: Int32 = errno) -> BoardcastError {
         .invalid(L10n.format("%@失败：%@（%d）", L10n.string(operation), String(cString: strerror(code)), code))
@@ -304,7 +407,8 @@ final class LANDiscovery: @unchecked Sendable {
               incoming.platform.utf16.count <= 128, (1024...65535).contains(incoming.port),
               (incoming.appVersion?.utf16.count ?? 0) <= 64, (incoming.runtime?.utf16.count ?? 0) <= 64,
               (incoming.updateVersion?.utf16.count ?? 0) <= 128,
-              incoming.updatePort == 0 || (1024...65535).contains(incoming.updatePort) else { return nil }
+              incoming.updatePort == 0 || (1024...65535).contains(incoming.updatePort),
+              incoming.capabilities.count <= 32, incoming.capabilities.allSatisfy({ $0.utf8.count <= 64 }) else { return nil }
         return incoming
     }
 
@@ -337,23 +441,32 @@ final class LANDiscovery: @unchecked Sendable {
             var text = [CChar](repeating: 0, count: Int(INET_ADDRSTRLEN))
             guard inet_ntop(AF_INET, &ip, &text, socklen_t(INET_ADDRSTRLEN)) != nil else { continue }
             let address = String(cString: text)
-            guard currentMessage.lanOnline, Self.isLocal(address),
+            guard currentMessage.lanOnline, Self.isReachableHost(address),
                   let incoming = Self.validatedMessage(Data(buffer.prefix(received)), localFingerprint: currentMessage.fingerprint) else { continue }
             let peer = PeerInfo(fingerprint: incoming.fingerprint.lowercased(), name: incoming.name,
                                 groupName: DeviceGroups.normalized(incoming.groupName), platform: incoming.platform,
                                 address: address, port: incoming.port, receivingEnabled: incoming.receivingEnabled,
                                 lanOnline: incoming.lanOnline, appVersion: incoming.appVersion, runtime: incoming.runtime,
-                                updatePort: incoming.updatePort, updateVersion: incoming.updateVersion)
+                                updatePort: incoming.updatePort, updateVersion: incoming.updateVersion,
+                                capabilities: incoming.capabilities)
             if incoming.type == "goodbye" {
                 // UDP is unauthenticated: the owner matches this endpoint and only sets a hint.
                 // Never send goodbye through onPeer, which would refresh lastSeen and identity data.
                 if Int(UInt16(bigEndian: sender.sin_port)) == Self.discoveryPort { departureCallback?(peer) }
                 continue
             }
-            if incoming.type == "probe", Date().timeIntervalSince(lastProbeReply) >= 2 {
-                lastProbeReply = Date()
-                broadcast()
+            if incoming.type == "probe" {
+                guard Date().timeIntervalSince(lastProbeReply[address] ?? .distantPast) >= 2 else { continue }
+                if lastProbeReply.count >= 256 {
+                    lastProbeReply = lastProbeReply.filter { Date().timeIntervalSince($0.value) < 2 }
+                    guard lastProbeReply.count < 256 else { continue }
+                }
+                lastProbeReply[address] = Date()
+                sendUnicast(type: "announce", address: address)
             }
+            // Routed advertisements are admitted only for a remembered range; inbound probes
+            // can always be answered, allowing the other side to learn without reciprocal setup.
+            guard Self.isLocal(address) || scanRanges.values.contains(where: { $0.subnet.contains(address) }) else { continue }
             peerCallback?(peer)
         }
     }

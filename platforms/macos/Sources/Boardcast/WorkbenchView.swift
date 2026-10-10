@@ -8,6 +8,7 @@ struct WorkbenchView: View {
     @ObservedObject var model: AppModel
     @State private var section: WorkbenchSection? = .send
     @State private var incoming: PendingOffer?
+    @State private var incomingSubnet: PendingSubnetOffer?
     var body: some View {
         NavigationSplitView {
             VStack(spacing: 0) {
@@ -50,6 +51,18 @@ struct WorkbenchView: View {
                     }.padding(12)
                     Divider()
                 }
+                if !model.pendingSubnets.isEmpty {
+                    HStack {
+                        Text(verbatim: L10n.format("%d 个网段共享等待确认", model.pendingSubnets.count))
+                        Spacer()
+                        Menu {
+                            ForEach(model.pendingSubnets) { request in
+                                Button { incomingSubnet = request } label: { Text(verbatim: request.offer.senderName) }
+                            }
+                        } label: { Text("查看网段共享", bundle: ResourceBundle.resources) }
+                    }.padding(12)
+                    Divider()
+                }
                 if section == .transfers {
                     TransfersView(model: model, store: model.tasks)
                 } else {
@@ -66,6 +79,7 @@ struct WorkbenchView: View {
         .onReceive(NotificationCenter.default.publisher(for: .boardcastShowSend)) { _ in section = .send }
         .onReceive(NotificationCenter.default.publisher(for: .boardcastShowTransfers)) { _ in section = .transfers }
         .sheet(item: $incoming) { request in IncomingOfferView(model: model, request: request) }
+        .sheet(item: $incomingSubnet) { request in IncomingSubnetOfferView(model: model, request: request) }
     }
 }
 
@@ -241,6 +255,9 @@ private struct PeerListView: View {
     @ObservedObject var draft: SendDraft
     @State private var inspecting: PeerInfo?
     @State private var inspectingUpdate: PeerInfo?
+    @State private var address = ""
+    @State private var connecting = false
+    @State private var showSubnetShare = false
     private var hiddenCount: Int { model.selectedPeers.subtracting(Set(model.visiblePeers.map(\.id))).count }
     private var sendReason: String {
         if model.terminationPending { return L10n.string("正在等待退出") }
@@ -279,6 +296,18 @@ private struct PeerListView: View {
             }.padding(12)
             TextField(L10n.string("搜索名称、地址或分组"), text: $model.peerSearch)
                 .textFieldStyle(.roundedBorder).padding(.horizontal, 12).padding(.bottom, 10)
+            HStack(spacing: 8) {
+                TextField(L10n.string("设备 IP 地址"), text: $address)
+                    .textFieldStyle(.roundedBorder)
+                    .accessibilityLabel(Text("设备 IP 地址", bundle: ResourceBundle.resources))
+                    .onSubmit { connectAddress() }
+                if connecting { ProgressView().controlSize(.small) }
+                Button { connectAddress() } label: { Text("连接 IP", bundle: ResourceBundle.resources) }
+                    .disabled(connecting || address.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || model.terminationPending)
+            }.padding(.horizontal, 12).padding(.bottom, 6)
+            Text("连接后自动发现该网段中的 Boardcast 设备。", bundle: ResourceBundle.resources)
+                .font(.caption).foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, alignment: .leading).padding(.horizontal, 12).padding(.bottom, 10)
             Divider()
             if model.visiblePeers.isEmpty {
                 VStack(spacing: 12) {
@@ -325,11 +354,74 @@ private struct PeerListView: View {
                 }.buttonStyle(.borderedProminent).controlSize(.large).disabled(!model.canSend)
                     .help(model.canSend ? L10n.string("创建每台设备的独立发送任务") : sendReason)
                 if !model.canSend { Text(verbatim: sendReason).font(.caption).foregroundStyle(.secondary) }
+                Button { showSubnetShare = true } label: {
+                    Label {
+                        Text(verbatim: L10n.format("向 %d 台设备共享网段", model.selectedPeers.count))
+                    } icon: { Image(systemName: "network") }
+                    .frame(maxWidth: .infinity)
+                }.disabled(!model.canShareSubnets).help(L10n.string("选择 1 至 32 台接收设备，再预览并共享网段。"))
+                Text("预览并选择要共享的网段，对方确认接收后开始发现。", bundle: ResourceBundle.resources)
+                    .font(.caption).foregroundStyle(.secondary).multilineTextAlignment(.center)
             }.padding(12)
         }.sheet(item: $inspecting) { peer in DeviceDetailView(model: model, peer: peer) }
         .sheet(item: $inspectingUpdate) { _ in
             UpdateDetailsSheet(model: model)
         }
+        .sheet(isPresented: $showSubnetShare) { SubnetShareView(model: model) }
+    }
+    private func connectAddress() {
+        let value = address.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !connecting, !value.isEmpty, !model.terminationPending else { return }
+        connecting = true
+        Task { @MainActor in
+            await model.addIPPeer(address: value)
+            connecting = false
+        }
+    }
+}
+
+@MainActor
+private struct SubnetShareView: View {
+    @ObservedObject var model: AppModel
+    @Environment(\.dismiss) private var dismiss
+    @State private var selectedSubnetIDs = Set<String>()
+    private var selectedSubnets: [DiscoverySubnet] {
+        model.shareableSubnets.filter { selectedSubnetIDs.contains($0.id) }
+    }
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("选择要共享的网段", bundle: ResourceBundle.resources).font(.title2)
+            Text(verbatim: L10n.format("发送给 %d 台设备", model.selectedPeers.count)).font(.headline)
+            Text(verbatim: model.peers.filter { model.selectedPeers.contains($0.id) }.map { model.displayName($0) }.joined(separator: "、"))
+                .foregroundStyle(.secondary).textSelection(.enabled)
+            Text("对方需要确认接收网段数据，接受后才会保存并开始发现设备。", bundle: ResourceBundle.resources)
+                .font(.caption).foregroundStyle(.secondary)
+            List(model.shareableSubnets) { subnet in
+                Toggle(isOn: Binding(get: { selectedSubnetIDs.contains(subnet.id) }, set: { selected in
+                    if selected { selectedSubnetIDs.insert(subnet.id) } else { selectedSubnetIDs.remove(subnet.id) }
+                })) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(verbatim: subnet.cidr).font(.system(.body, design: .monospaced))
+                        Text(verbatim: L10n.format("端口：%d", subnet.port)).font(.caption).foregroundStyle(.secondary)
+                    }
+                }.toggleStyle(.checkbox)
+            }.listStyle(.inset)
+            HStack {
+                Button { selectedSubnetIDs = Set(model.shareableSubnets.map(\.id)) } label: {
+                    Text("全选网段", bundle: ResourceBundle.resources)
+                }
+                Button { selectedSubnetIDs.removeAll() } label: { Text("清空选择", bundle: ResourceBundle.resources) }
+                Spacer()
+                Button { dismiss() } label: { Text("取消", bundle: ResourceBundle.resources) }.keyboardShortcut(.cancelAction)
+                Button {
+                    model.shareSubnetsToSelectedPeers(subnets: selectedSubnets)
+                    dismiss()
+                } label: { Text("共享所选网段", bundle: ResourceBundle.resources) }
+                    .buttonStyle(.borderedProminent).disabled(!model.canShareSubnets || selectedSubnets.isEmpty)
+            }
+        }.padding(20).frame(minWidth: 560, minHeight: 420)
+        .onAppear { selectedSubnetIDs = Set(model.shareableSubnets.map(\.id)) }
+        .onChange(of: model.shareableSubnets.map(\.id)) { ids in selectedSubnetIDs.formIntersection(ids) }
     }
 }
 
@@ -430,6 +522,53 @@ private struct IncomingOfferView: View {
     }
 }
 
+@MainActor
+private struct IncomingSubnetOfferView: View {
+    @ObservedObject var model: AppModel
+    let request: PendingSubnetOffer
+    @Environment(\.dismiss) private var dismiss
+    var body: some View {
+        VStack(spacing: 12) {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text(verbatim: request.offer.senderName).font(.title2).textSelection(.enabled)
+                    Text(verbatim: L10n.format("请求共享 %d 个网段", request.offer.subnets.count))
+                    Text("接受后会保存以下网段并发现其中的 Boardcast 设备。可在设置中遗忘网段。", bundle: ResourceBundle.resources)
+                        .foregroundStyle(.secondary)
+                    FingerprintView(value: request.fingerprint)
+                    Text("共享网段", bundle: ResourceBundle.resources).font(.headline)
+                    ForEach(request.offer.subnets) { subnet in
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(verbatim: subnet.cidr).font(.system(.body, design: .monospaced)).textSelection(.enabled)
+                            Text(verbatim: L10n.format("端口：%d", subnet.port)).font(.caption).foregroundStyle(.secondary)
+                        }
+                    }
+                }.padding(20).frame(maxWidth: .infinity, alignment: .leading)
+            }
+            TimelineView(.periodic(from: Date(), by: 1)) { context in
+                let valid = context.date < request.expiresAt && model.pendingSubnets.contains(where: { $0.id == request.id })
+                VStack(spacing: 8) {
+                    Text(verbatim: valid ? L10n.format("请在 %@ 前确认", request.expiresAt.formatted(date: .omitted, time: .standard)) : L10n.string("请求已过期"))
+                        .font(.caption).foregroundStyle(.secondary)
+                    HStack {
+                        Button { dismiss() } label: { Text("稍后处理", bundle: ResourceBundle.resources) }.keyboardShortcut(.cancelAction)
+                        Spacer()
+                        Button { model.decideSubnet(request, accepted: false); dismiss() } label: {
+                            Text("拒绝", bundle: ResourceBundle.resources)
+                        }.disabled(!valid)
+                        Button { model.decideSubnet(request, accepted: true); dismiss() } label: {
+                            Text("接受网段", bundle: ResourceBundle.resources)
+                        }.buttonStyle(.borderedProminent).disabled(!valid || !model.settings.receivingEnabled || model.terminationPending)
+                    }
+                    if !model.settings.receivingEnabled {
+                        Text("新接收已暂停，请先恢复接收。", bundle: ResourceBundle.resources).font(.caption)
+                    }
+                }.padding(.horizontal, 20).padding(.bottom, 16)
+            }
+        }.frame(minWidth: 520, minHeight: 400)
+    }
+}
+
 private enum TransferFilter: CaseIterable, Hashable { case all, active, completed, failed }
 @MainActor
 private struct TransfersView: View {
@@ -466,7 +605,7 @@ private struct TransfersView: View {
                             Button { openWindow(id: "task", value: record.id) } label: {
                                 Text(verbatim: record.peerName).font(.headline)
                             }.buttonStyle(.plain)
-                            Text(verbatim: record.direction.title).foregroundStyle(.secondary)
+                            Text(verbatim: record.kind == "subnets" ? L10n.format("%@ · 网段共享", record.direction.title) : record.direction.title).foregroundStyle(.secondary)
                             Spacer()
                             Text(verbatim: record.phase.title)
                             if record.isActive {
@@ -505,7 +644,9 @@ struct TransferDetailView: View {
                     LabeledContent(L10n.string("开始时间")) { Text(record.createdAt, format: .dateTime) }
                     LabeledContent(L10n.string("最后更新")) { Text(record.updatedAt, format: .dateTime) }
                     FingerprintView(value: record.peerFingerprint)
-                    Text(verbatim: L10n.format("已保存 %d 个文件", record.savedFiles))
+                    if record.kind != "subnets" {
+                        Text(verbatim: L10n.format("已保存 %d 个文件", record.savedFiles))
+                    }
                     if let path = record.destination {
                         Text("实际保存位置", bundle: ResourceBundle.resources).font(.headline)
                         Text(verbatim: path).textSelection(.enabled)
@@ -529,11 +670,15 @@ private struct TransferProgressView: View {
     let record: TransferRecord
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            if record.isActive && record.totalBytes > 0 {
-                ProgressView(value: Double(max(0, record.completedBytes)), total: Double(record.totalBytes))
-                    .accessibilityLabel(Text(verbatim: record.phase.title))
+            if record.kind == "subnets" {
+                Text("网段共享", bundle: ResourceBundle.resources).font(.caption).foregroundStyle(.secondary)
+            } else {
+                if record.isActive && record.totalBytes > 0 {
+                    ProgressView(value: Double(max(0, record.completedBytes)), total: Double(record.totalBytes))
+                        .accessibilityLabel(Text(verbatim: record.phase.title))
+                }
+                Text(verbatim: byteSize(record.completedBytes) + " / " + byteSize(record.totalBytes)).font(.caption).monospacedDigit()
             }
-            Text(verbatim: byteSize(record.completedBytes) + " / " + byteSize(record.totalBytes)).font(.caption).monospacedDigit()
         }
     }
 }

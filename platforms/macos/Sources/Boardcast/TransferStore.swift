@@ -47,6 +47,7 @@ struct TransferProgress: Sendable {
     var destination: String? = nil
     var message: String? = nil
     var peerName: String? = nil
+    var kind: String = "files"
 }
 
 struct TransferRecord: Codable, Identifiable, Sendable {
@@ -60,6 +61,7 @@ struct TransferRecord: Codable, Identifiable, Sendable {
     var savedFiles: Int = 0
     var destination: String? = nil
     var message: String? = nil
+    var kind: String? = nil
     var createdAt = Date()
     var updatedAt = Date()
     var isActive: Bool { phase.isActive }
@@ -106,6 +108,7 @@ final class TransferStore: ObservableObject {
             guard tasks[index].isActive || tasks[index].phase == progress.phase ||
                 (!progress.phase.isActive && tasks[index].phase != .completed && tasks[index].phase != .cancelled) ||
                 (progress.direction == .receiving && progress.phase == .completed) else { return }
+            tasks[index].kind = progress.kind
             tasks[index].phase = progress.phase
             tasks[index].completedBytes = progress.completedBytes
             tasks[index].totalBytes = progress.totalBytes
@@ -119,7 +122,7 @@ final class TransferStore: ObservableObject {
                                         peerName: peerName ?? progress.peerFingerprint,
                                         phase: progress.phase, completedBytes: progress.completedBytes,
                                         totalBytes: progress.totalBytes, savedFiles: progress.savedFiles,
-                                        destination: progress.destination, message: progress.message), at: 0)
+                                        destination: progress.destination, message: progress.message, kind: progress.kind), at: 0)
         }
         trim()
         if !progress.phase.isActive || Date().timeIntervalSince(lastWrite) >= 2 { persist() }

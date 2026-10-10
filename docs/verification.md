@@ -1,5 +1,19 @@
 # 验证记录
 
+## 2026-10-10：网段发现与分享
+
+Windows 和 macOS 新增明确 IP 连接后的网段学习、设置遗忘、多设备主动分享与接收确认。只探测手动连接成功或明确接受分享的 RFC1918 IPv4 /16–/32 范围；不新增 NAT 映射、打洞或公网穿透。网段分享不使用文件自动接收规则，也不会建立设备信任。
+
+本轮复用了“分析最近提交的构建问题”中的经验：新增可选 wire 字段保留旧版缺省解码，Swift 状态由主 actor 或发现串行队列保护，取消同时结束网络与批准等待，新增生产源码和测试登记到 Xcode 对应 target。保留现有证书、app macOS 13 / XCTest 14 部署目标与 artifacts/macos 构建路径。
+
+Mac 已执行离线静态检查：40 份 Swift 文件（含 Package.swift）语法解析无错误；原生工程结构检查通过（app 24 / helper 2 / XCTest 14 个编译文件）。新增 8 个网段 XCTest 方法已编写，当前 Windows 环境未运行 Mac 编译或 XCTest，尚需 Mac 原生构建和跨 AP 实机互通验收。静态检查不证明 Apple SDK 类型、API availability、并发诊断或实际 TLS/权限行为正确。
+
+Windows 的新增扫描测试通过注入 UDP/TCP 回调验证范围与取消；协议测试使用隔离身份和本机端口，未对实际公司网段发起探测。UI 验证使用预览快照，不启动生产后台。最终执行 `scripts/Test.ps1` 全部通过，最终源码 Release 构建 0 警告、0 错误：策略/扩展 35 项、分组 17 项、传输 198 项（包含新增网段专项 47 项）、后台恢复 51 项、扫描 21 项、更新 85 项、显式更新发现 19 项、WPF 布局 1031 项断言，以及 CLI/MCP smoke。新增布局覆盖按 CIDR+端口遗忘、常规草稿与过期快照保护、网段/设备容量、多对象分享、暂停接收、独立进度与取消。日志保存在 `artifacts/subnet-verification/windows-tests.log`（本地忽略的验证产物）。Windows 网段选择、接收和设置页面最低窗口尺寸预览已人工检查。
+
+Windows 正式发行版本为 0.2.8，沿用原 `boardcast-release-1`，使用全新目录构建 x64 自包含完整 ZIP。发布门槛包括从最终 ZIP 重新解压核验签名、全部文件摘要、各组件版本、公钥、运行时、回环 mTLS 与 CLI/MCP，并以旧签名 0.2.7 验证完整更新下载和待安装状态恢复；报告保存在包外：[发行验收](../dist/Boardcast-win-x64-0.2.8.verification.json)、[升级验收](../dist/Boardcast-win-x64-0.2.8.upgrade-verification.json)。Mac 安装包由 Mac 环境另行构建。
+
+功能说明见 [网段发现与分享](subnet-discovery.md)，wire 与 IPC 契约见 [协议](protocol.md#remembered-subnet-discovery-and-sharing)。
+
 ## 2026-10-09：macOS 设计同步 0.2.7 与图标一致性
 
 在「调整设备列表工具栏布局」会话完成 Windows 0.2.7 后，同步 [Mac 设计](macos-design.md)、[本地开发交接](../platforms/macos/DEVELOPMENT.md)和图标要点。文件行逐项测完整名称与完整元数据，放得下才单行，放不下保留两行；分栏、统计和排除变化后重测，主清单与展开一致。设备继续保持单行。
@@ -24,7 +38,7 @@ macOS 设计和开发交接文档随包同步，Swift 实现仍未在 Mac 构建
 
 ## 2026-10-09：0.2.7 自适应文件行与签名发行
 
-源码与正式签名包均为 **0.2.7**。文件名、大小与文件数量能完整放下时使用单行，否则保留两行，随窗口宽度和统计结果自动调整；首页与展开清单一致。发行采用原 `boardcast-release-1`，Windows x64 自包含完整 ZIP；验收与升级报告见 `dist/`：[发行验收](../dist/Boardcast-win-x64-0.2.7.verification.json)、[0.2.6 升级验收](../dist/Boardcast-win-x64-0.2.7.upgrade-verification.json)。
+源码与正式签名包均为 **0.2.7**。文件名、大小与文件数量能完整放下时使用单行，否则保留两行，随窗口宽度和统计结果自动调整；首页与展开清单一致。发行采用原 `boardcast-release-1`，Windows x64 自包含完整 ZIP；验收与升级报告当时保存在 `dist/`，历史报告留在本地 `artifacts/releases/`：[发行验收](../artifacts/releases/Boardcast-win-x64-0.2.7.verification.json)、[0.2.6 升级验收](../artifacts/releases/Boardcast-win-x64-0.2.7.upgrade-verification.json)。
 
 ## 2026-10-09：macOS 设计交接按最终布局同步
 
@@ -119,6 +133,6 @@ dotnet run --project tests/Boardcast.LayoutTests -c Release -- --render-preview 
 
 ## LAN 边界
 
-核心没有公网发现、中继、穿透、域名解析或云控制面。Windows 发现向本地 IPv4 子网广播（TTL 1），文件传输拒绝公网地址；手动连接允许 RFC1918、链路本地、IPv6 ULA 与回环。私有地址不证明物理同网段：私网 VPN 或路由后的内部网段仍可能可达。macOS 当前只接受物理接口的 IPv4 子网，排除 utun/ppp，两端覆盖范围不同。
+核心没有公网发现、穿透、域名解析或云控制面。本地 IPv4 广播维持 TTL 1；显式 IP 连接成功或明确接受分享后，才对已保存的 RFC1918 IPv4 /16–/32 网段进行限速单播和应用端口探测。网段探测不扩展为全私网搜索；遗忘、离线或退出会取消探测。私有地址不证明物理同网段：经 AP 和内部路由连接的已许可网段仍可能可达，不使用 NAT 映射或公网打洞。两平台的实际多网卡、接口权限和跨 AP 互通仍需对应环境验收。
 
 严格禁止 VPN/跨路由内网连接仍需基于接口和路由的 on-link 校验及多网卡/IPv6 验收。可选 LLM/飞书工具的网络行为由其自身决定，核心不自动调用这些工具。传输不承诺 ACL、NTFS ADS 或 Finder 标签等平台元数据保真。

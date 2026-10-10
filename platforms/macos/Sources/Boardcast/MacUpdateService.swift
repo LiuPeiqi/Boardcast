@@ -88,7 +88,7 @@ final class MacUpdateService: ObservableObject {
         return peers.filter { peer in
             guard peer.lanOnline, !peer.departureHint, peer.runtime == advertisedRuntime,
                   (1...65535).contains(peer.updatePort),
-                  DeviceIdentity.isFingerprint(peer.fingerprint), LANDiscovery.isLocal(peer.address),
+                  DeviceIdentity.isFingerprint(peer.fingerprint), LANDiscovery.isReachableHost(peer.address),
                   let version = peer.updateVersion.flatMap({ try? MacVersion($0) }) else { return false }
             return version > current.version
         }.sorted {
@@ -233,7 +233,7 @@ final class MacUpdateService: ObservableObject {
     private func accept(_ connection: NWConnection) {
         guard sessions.count < 2, let release = published,
               case .hostPort(let host, _) = connection.endpoint,
-              LANDiscovery.isLocal(String(describing: host)) else {
+              LANDiscovery.isReachableHost(String(describing: host)) else {
             connection.cancel()
             listener?.newConnectionLimit = max(0, 2 - sessions.count)
             return

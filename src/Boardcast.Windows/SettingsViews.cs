@@ -41,6 +41,7 @@ public partial class MainWindow
     private void RenderSettings()
     {
         SettingsContent.Children.Clear();
+        _subnetSettingsHost = null;
         if (_settingsSection == "updates") { RenderUpdateSettings(); return; }
         if (_settingsSection == "known") { RenderKnownSettings(); return; }
         if (_settingsSection == "extensions") { RenderExtensionSettings(); return; }
@@ -77,6 +78,7 @@ public partial class MainWindow
             SettingRow(SettingDescription("允许接收新请求"), receiving)));
 
         AddGroupSettings(name, groupName);
+        AddSubnetSettings();
 
         var startup = SettingSwitch("登录 Windows 时启动到托盘", !_previewMode && StartupRegistration.IsEnabled());
         startup.Click += (_, _) =>
@@ -209,4 +211,3 @@ public partial class MainWindow
         return true;
     }
 }
-

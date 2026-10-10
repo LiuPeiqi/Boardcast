@@ -10,7 +10,7 @@ public class EditorDialog : Window
 {
     protected readonly StackPanel _fields = new() { Margin = new Thickness(24, 22, 24, 8) };
 
-    public EditorDialog(Window owner, string title)
+    public EditorDialog(Window owner, string title, string confirmLabel = "确定")
     {
         Style = (Style)FindResource(typeof(Window));
         Owner = owner;
@@ -53,7 +53,7 @@ public class EditorDialog : Window
         };
         var save = new Button
         {
-            Content = "确定",
+            Content = confirmLabel,
             IsDefault = true,
             Style = (Style)FindResource("SettingPrimary"),
             MinWidth = 72,

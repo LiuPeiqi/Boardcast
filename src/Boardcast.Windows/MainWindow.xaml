@@ -128,6 +128,7 @@
         <Button x:Name="ConnectPeerButton" Content="通过 IP 连接" Style="{StaticResource DeviceAction}" Click="ConnectClick"/>
         <Button x:Name="ManagePeerButton" Content="设备详情" Style="{StaticResource DeviceAction}" IsEnabled="False" Click="ManagePeerClick"/>
         <Button x:Name="ReceiveFolderButton" Content="打开接收文件夹" Style="{StaticResource DeviceAction}" Click="ReceiveFolderClick" Margin="0"/>
+        <Button x:Name="ShareSubnetsButton" Content="分享网段" Style="{StaticResource DeviceAction}" Click="ShareSubnetsClick" IsEnabled="False" AutomationProperties.AutomationId="ShareSubnetsButton"/>
        </WrapPanel>
        <DockPanel Margin="8,8,0,0"><Button x:Name="ClearPeersButton" DockPanel.Dock="Right" Content="清除选择" Click="ClearPeersClick" Style="{StaticResource Quiet}" Padding="5,2" MinHeight="0" FontSize="12" Visibility="Collapsed" Margin="8,0,0,0"/><TextBlock x:Name="RecipientHint" Text="点击设备可多选" FontSize="12" Foreground="{StaticResource Muted}" VerticalAlignment="Center"/></DockPanel><TextBlock x:Name="RecipientNames" FontSize="12" Foreground="{StaticResource Muted}" Margin="8,6,0,0" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" Visibility="Collapsed"/>
       </StackPanel>
@@ -157,12 +158,3 @@
   </Grid>
  </Grid>
 </Window>
-
-
-
-
-
-
-
-
-

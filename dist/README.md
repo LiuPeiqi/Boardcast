@@ -6,16 +6,16 @@
 
 | 版本 | 完整包 | 校验 |
 |------|--------|------|
-| **0.2.7** | [Boardcast-win-x64-0.2.7.zip](Boardcast-win-x64-0.2.7.zip) | [SHA-256](Boardcast-win-x64-0.2.7.zip.sha256) |
+| **0.2.8** | [Boardcast-win-x64-0.2.8.zip](Boardcast-win-x64-0.2.8.zip) | [SHA-256](Boardcast-win-x64-0.2.8.zip.sha256) |
 
 公钥记录：[publisher-public-key.json](publisher-public-key.json)。签名与保管说明见 [docs/signed-release.md](../docs/signed-release.md)。
 
-源码版本见根目录 `Directory.Build.props`（当前为 **0.2.7**），与本目录签名包一致。
+源码版本见根目录 `Directory.Build.props`（当前为 **0.2.8**），与本目录签名包一致。
 
 ## 终端用户安装（无需 .NET）
 
 1. 安装 [Git LFS](https://git-lfs.com/)，再克隆或拉取本仓库，否则 ZIP 可能只是指针文件。
-2. 下载 `Boardcast-win-x64-0.2.7.zip`，用旁边的 `.sha256` 校验。
+2. 下载 `Boardcast-win-x64-0.2.8.zip`，用旁边的 `.sha256` 校验。
 3. 退出旧版 Boardcast 及后台，将 ZIP **完整解压**到干净、可写目录。
 4. 运行 `Boardcast.exe`。不要只复制单个 EXE；包内含共享运行时。
 

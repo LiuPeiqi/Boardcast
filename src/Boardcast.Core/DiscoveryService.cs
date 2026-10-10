@@ -18,6 +18,7 @@ public sealed class DiscoveryService : IDisposable
     private readonly UdpClient socket;
     private readonly int discoveryPort;
     private readonly CancellationTokenSource lifetime = new();
+    private readonly SemaphoreSlim sendGate = new(1);
     private DateTimeOffset lastProbeResponse;
     private long lastNetworkEvent;
     public DiscoveryService(Func<PeerInfo> local, Action<string>? report = null, int discoveryPort = DiscoveryPort)
@@ -49,6 +50,33 @@ public sealed class DiscoveryService : IDisposable
     {
         if (!local().LanOnline) throw new InvalidOperationException("请先连接局域网，再刷新附近设备。");
         return BroadcastAsync("probe", ct);
+    }
+    public async Task ProbeAddressAsync(IPAddress address, CancellationToken ct = default)
+    {
+        if (!local().LanOnline || !DiscoverySubnets.IsPrivate(address)) return;
+        var bytes = Encode("probe", local());
+        if (bytes.Length <= MaximumPacketBytes)
+            await SendPacketAsync(bytes, new IPEndPoint(address, discoveryPort), routed: true, ct).ConfigureAwait(false);
+    }
+    private static byte[] Encode(string type, PeerInfo peer) => JsonSerializer.SerializeToUtf8Bytes(new DiscoveryMessage
+    {
+        Type = type, Fingerprint = peer.Fingerprint, Name = peer.Name, GroupName = peer.GroupName,
+        Platform = peer.Platform, Port = peer.Port, ReceivingEnabled = peer.ReceivingEnabled, LanOnline = type != "goodbye" && peer.LanOnline,
+        AppVersion = peer.AppVersion, Runtime = peer.Runtime, UpdatePort = peer.UpdatePort, UpdateVersion = peer.UpdateVersion, Capabilities = [TransferService.SubnetSharingCapability]
+    }, DiscoveryJson);
+    private async Task SendPacketAsync(byte[] bytes, IPEndPoint endpoint, bool routed, CancellationToken ct)
+    {
+        await sendGate.WaitAsync(ct).ConfigureAwait(false);
+        try
+        {
+            socket.Ttl = (short)(routed ? 64 : 1);
+            await socket.SendAsync(bytes, endpoint, ct).ConfigureAwait(false);
+        }
+        finally
+        {
+            try { if (!lifetime.IsCancellationRequested) socket.Ttl = 1; }
+            finally { sendGate.Release(); }
+        }
     }
     public async Task StateChangedAsync(bool wasOnline, CancellationToken ct = default)
     {
@@ -126,11 +154,13 @@ public sealed class DiscoveryService : IDisposable
                 }
                 Remember(new PeerInfo { Fingerprint = message.Fingerprint, Name = message.Name, GroupName = message.GroupName, Platform = message.Platform, Port = message.Port,
                     ReceivingEnabled = message.ReceivingEnabled, LanOnline = message.LanOnline, AppVersion = message.AppVersion, Runtime = message.Runtime,
-                    UpdatePort = message.UpdatePort, UpdateVersion = message.UpdateVersion, Address = received.RemoteEndPoint.Address.ToString() });
+                    UpdatePort = message.UpdatePort, UpdateVersion = message.UpdateVersion, Capabilities = message.Capabilities ?? [], Address = received.RemoteEndPoint.Address.ToString() });
                 if (message.Type == "probe" && DateTimeOffset.UtcNow - lastProbeResponse > TimeSpan.FromSeconds(1))
                 {
                     lastProbeResponse = DateTimeOffset.UtcNow;
-                    await BroadcastAsync("announce", ct).ConfigureAwait(false);
+                    var reply = Encode("announce", local());
+                    if (reply.Length <= MaximumPacketBytes)
+                        await SendPacketAsync(reply, received.RemoteEndPoint, routed: true, ct).ConfigureAwait(false);
                 }
             }
             catch (Exception ex) when (ex is JsonException or InvalidDataException or ArgumentException) { }
@@ -140,9 +170,7 @@ public sealed class DiscoveryService : IDisposable
     {
         var peer = local();
         if (!peer.LanOnline && !allowOffline) return;
-        byte[] bytes = JsonSerializer.SerializeToUtf8Bytes(new DiscoveryMessage { Type = type, Fingerprint = peer.Fingerprint, Name = peer.Name, GroupName = peer.GroupName,
-            Platform = peer.Platform, Port = peer.Port, ReceivingEnabled = peer.ReceivingEnabled, LanOnline = type != "goodbye" && peer.LanOnline,
-            AppVersion = peer.AppVersion, Runtime = peer.Runtime, UpdatePort = peer.UpdatePort, UpdateVersion = peer.UpdateVersion }, DiscoveryJson);
+        byte[] bytes = Encode(type, peer);
         if (bytes.Length > MaximumPacketBytes)
         {
             report?.Invoke("广播未发出：设备发现信息超过 2048 字节，请缩短设备名或分组名。可使用 IP 连接。");
@@ -167,7 +195,7 @@ public sealed class DiscoveryService : IDisposable
         if (endpoints.Count == 0) endpoints.Add(IPAddress.Broadcast);
         foreach (var endpoint in endpoints)
         {
-            try { await socket.SendAsync(bytes, new IPEndPoint(endpoint, discoveryPort), ct).ConfigureAwait(false); }
+            try { await SendPacketAsync(bytes, new IPEndPoint(endpoint, discoveryPort), routed: false, ct).ConfigureAwait(false); }
             catch (SocketException ex) { report?.Invoke("广播未发出，可使用 IP 连接：" + ex.Message); }
             catch (ObjectDisposedException) when (lifetime.IsCancellationRequested) { }
         }
@@ -209,5 +237,6 @@ public sealed class DiscoveryService : IDisposable
         public string Runtime { get; set; } = "";
         public int UpdatePort { get; set; }
         public string UpdateVersion { get; set; } = "";
+        public List<string> Capabilities { get; set; } = [];
     }
 }

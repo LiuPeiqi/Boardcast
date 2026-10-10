@@ -46,6 +46,7 @@ public sealed class SettingsStore
     {
         if (settings is null) throw new InvalidDataException("设置不能为空。");
         settings.AutoDownloadUpdates = false;
+        settings.DiscoverySubnets = DiscoverySubnets.Normalize(settings.DiscoverySubnets);
         if (settings.Version != 1) throw new InvalidDataException("不支持此配置版本；当前版本为 1。");
         if (!ValidText(settings.DeviceName, 80, required: true)) throw new InvalidDataException("设备名需要 1–80 个字符，且不能包含控制字符。");
         if (!DeviceGroups.IsValidGroupName(settings.GroupName)) throw new InvalidDataException("分组名不能为 null、超过 80 个字符或包含控制字符。");

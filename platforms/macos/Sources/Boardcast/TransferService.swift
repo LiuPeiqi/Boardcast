@@ -3,12 +3,15 @@ import Network
 import CryptoKit
 import Darwin
 
-struct WireMessage: Codable {
+struct WireMessage: Codable, Sendable {
     var type: String
     var version: Int?
     var peer: PeerInfo?
     var offer: TransferOffer?
     var message: String?
+    var transferId: String?
+    var subnets: [DiscoverySubnet]?
+    var capabilities: [String]?
 }
 
 /// Legacy v1 streaming only. Network.framework owns TLS and socket behavior.
@@ -27,6 +30,7 @@ final class TransferService: @unchecked Sendable {
     var onConnectionsChanged: (() -> Void)?
     var onProgress: ((TransferProgress) async -> Void)?
     var onOffer: ((TransferOffer, String, ReceiveDecision) async -> OfferApproval)?
+    var onSubnetOffer: ((SubnetOffer, String) async -> Bool)?
 
     init(identity: DeviceIdentity, settings: @escaping () async -> AppSettings) {
         self.identity = identity; self.settings = settings
@@ -44,7 +48,7 @@ final class TransferService: @unchecked Sendable {
         server.newConnectionHandler = { [weak self] connection in
             guard let self else { connection.cancel(); return }
             guard case let .hostPort(host, _) = connection.endpoint,
-                  LANDiscovery.isLocal(String(describing: host)) else { connection.cancel(); return }
+                  LANDiscovery.isReachableHost(String(describing: host)) else { connection.cancel(); return }
             let id = "connection-" + UUID().uuidString
             let session = Session()
             guard self.registerIncoming(id: id, session: session) else { connection.cancel(); return }
@@ -157,7 +161,9 @@ final class TransferService: @unchecked Sendable {
     private func hello(_ configuration: AppSettings) -> WireMessage {
         WireMessage(type: "hello", version: 1, peer: PeerInfo(fingerprint: identity.fingerprint,
             name: configuration.deviceName, groupName: DeviceGroups.normalized(configuration.groupName),
-            port: configuration.port, receivingEnabled: configuration.receivingEnabled))
+            port: configuration.port, receivingEnabled: configuration.receivingEnabled,
+            discoverySubnets: LANDiscovery.localSubnets(port: configuration.port, forSharing: false)),
+            capabilities: [SubnetValidation.capability])
     }
 
     static func validateHello(_ message: WireMessage, fingerprint: String) throws {
@@ -166,7 +172,9 @@ final class TransferService: @unchecked Sendable {
               peer.platform.utf16.count <= 128, (peer.appVersion?.utf16.count ?? 0) <= 64,
               (peer.runtime?.utf16.count ?? 0) <= 64, (peer.updateVersion?.utf16.count ?? 0) <= 64,
               peer.updatePort == 0 || (1024...65535).contains(peer.updatePort),
-              DeviceGroups.isValid(peer.groupName),
+              DeviceGroups.isValid(peer.groupName), peer.discoverySubnets.count <= 32,
+              peer.discoverySubnets.allSatisfy({ $0.cidr.utf8.count <= 32 && (1024...65535).contains($0.port) }),
+              (message.capabilities?.count ?? 0) <= 32, message.capabilities?.allSatisfy({ $0.utf8.count <= 64 }) != false,
               peer.fingerprint.caseInsensitiveCompare(fingerprint) == .orderedSame else {
             throw BoardcastError.invalid(L10n.string("设备身份或协议版本不匹配"))
         }
@@ -178,16 +186,68 @@ final class TransferService: @unchecked Sendable {
         defer { wire.close(); unregister(id: localID); releaseSlot() }
         var storage: ReceiveStorage?
         var progress: TransferProgress?
+        var subnetRequestID: String?
         do {
             try await wire.start()
             wire.setIdleTimeout(15)
             try session.checkCancellation()
             let authenticated = try DeviceIdentity.peerFingerprint(wire.connection)
-            try Self.validateHello(try await wire.readJSON(WireMessage.self), fingerprint: authenticated)
+            let remoteHello = try await wire.readJSON(WireMessage.self)
+            try Self.validateHello(remoteHello, fingerprint: authenticated)
             let initial = await settings()
             try await wire.sendJSON(hello(initial))
             let request = try await wire.readJSON(WireMessage.self)
             if request.type == "bye" { return }
+            if request.type == "subnet-offer" {
+                subnetRequestID = request.transferId
+                guard request.version == 1, let transferID = request.transferId,
+                      transferID.range(of: "^[a-f0-9]{32}$", options: .regularExpression) != nil,
+                      let subnets = request.subnets else { throw BoardcastError.invalid(L10n.string("网段分享请求无效。")) }
+                try SubnetValidation.validate(subnets)
+                guard initial.receivingEnabled else { throw Rejection(L10n.string("接收已暂停")) }
+                let incoming = SubnetOffer(id: transferID, senderName: remoteHello.peer?.name ?? authenticated,
+                                           subnets: subnets.map(\.wireValue))
+                let receiveID = "subnet-receive-" + authenticated + "-" + transferID
+                try adoptReceiveID(localID, new: receiveID, session: session)
+                localID = receiveID
+                var state = TransferProgress(id: localID, direction: .receiving, peerFingerprint: authenticated,
+                    phase: .awaitingApproval, completedBytes: 0, totalBytes: 0,
+                    message: L10n.string("等待确认接收网段"), peerName: incoming.senderName, kind: "subnets")
+                progress = state
+                await onProgress?(state)
+                wire.setIdleTimeout(130)
+                try await wire.sendJSON(WireMessage(type: "subnet-pending", version: 1, transferId: transferID))
+                let pending = ApprovalWaiter()
+                session.bindApproval(pending)
+                wire.whenClosed { [weak pending] in pending?.resolve(.reject) }
+                let disconnect = Task {
+                    _ = try? await wire.readJSON(WireMessage.self)
+                    pending.resolve(.reject)
+                }
+                defer { disconnect.cancel() }
+                let approval = await pending.wait { [weak self] in
+                    let accepted = await self?.onSubnetOffer?(incoming, authenticated) ?? false
+                    return accepted ? .accept(destination: nil) : .reject
+                }
+                session.bindApproval(nil)
+                try session.checkCancellation()
+                guard case .accept = approval else {
+                    state.phase = .rejected
+                    state.message = L10n.string("接收方已拒绝或确认超时")
+                    progress = state
+                    await onProgress?(state)
+                    try await wire.sendJSON(WireMessage(type: "subnet-reject", version: 1,
+                        message: state.message, transferId: transferID))
+                    return
+                }
+                // UI approval succeeds only after validating and persisting the imported ranges.
+                state.phase = .completed
+                state.message = L10n.string("已接收网段并开始发现设备")
+                progress = state
+                await onProgress?(state)
+                try await wire.sendJSON(WireMessage(type: "subnet-accept", version: 1, transferId: transferID))
+                return
+            }
             guard request.type == "offer", request.version == nil || request.version == 1,
                   let offer = request.offer else { throw BoardcastError.invalid(L10n.string("缺少文件清单")) }
             let decision = try ReceivePolicy.evaluate(settings: initial, offer: offer, fingerprint: authenticated)
@@ -273,13 +333,17 @@ final class TransferService: @unchecked Sendable {
                 state.message = error.localizedDescription
                 await onProgress?(state)
             }
-            if !cancelled { try? await wire.sendJSON(WireMessage(type: "reject", message: error.localizedDescription)) }
+            if !cancelled {
+                try? await wire.sendJSON(WireMessage(type: subnetRequestID == nil ? "reject" : "subnet-reject",
+                    version: subnetRequestID == nil ? nil : 1,
+                    message: error.localizedDescription, transferId: subnetRequestID))
+            }
             onStatus?(error.localizedDescription)
         }
     }
 
     func send(prepared: PreparedTransfer, summary: String, to peer: PeerInfo, id: String) async throws {
-        guard LANDiscovery.isLocal(peer.address), peer.fingerprint.range(of: "^[a-fA-F0-9]{64}$", options: .regularExpression) != nil,
+        guard LANDiscovery.isReachableHost(peer.address), peer.fingerprint.range(of: "^[a-fA-F0-9]{64}$", options: .regularExpression) != nil,
               let number = UInt16(exactly: peer.port), let port = NWEndpoint.Port(rawValue: number) else {
             throw BoardcastError.invalid(L10n.string("仅允许直连本地网络内的设备"))
         }
@@ -360,6 +424,107 @@ final class TransferService: @unchecked Sendable {
                 state.message = error.localizedDescription; await onProgress?(state)
             }
             throw error
+        }
+    }
+
+    /// A numeric-IP lookup authenticates hello but never grants trust or persists a subnet.
+    func lookupPeer(address: String, port: Int = 45831, timeout: TimeInterval = 15) async throws -> PeerInfo {
+        guard LANDiscovery.isReachableHost(address), let number = UInt16(exactly: port),
+              let target = NWEndpoint.Port(rawValue: number) else {
+            throw BoardcastError.invalid(L10n.string("请输入可连接的私有 IPv4 地址。"))
+        }
+        let connection = NWConnection(host: NWEndpoint.Host(address), port: target, using: try identity.parameters())
+        let wire = WireConnection(connection)
+        let deadline = DispatchWorkItem { wire.close() }
+        DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + timeout, execute: deadline)
+        defer { deadline.cancel(); wire.close() }
+        return try await withTaskCancellationHandler(operation: {
+            try await wire.start()
+            let authenticated = try DeviceIdentity.peerFingerprint(connection)
+            try await wire.sendJSON(hello(await settings()))
+            let response = try await wire.readJSON(WireMessage.self)
+            try Self.validateHello(response, fingerprint: authenticated)
+            guard var peer = response.peer, peer.fingerprint.caseInsensitiveCompare(identity.fingerprint) != .orderedSame else {
+                throw BoardcastError.invalid(L10n.string("不能连接当前设备。"))
+            }
+            peer.capabilities = response.capabilities ?? []
+            peer.fingerprint = authenticated.lowercased()
+            peer.address = address
+            peer.port = port
+            try await wire.sendJSON(WireMessage(type: "bye"))
+            return peer
+        }, onCancel: { wire.close() })
+    }
+
+    func shareSubnets(_ values: [DiscoverySubnet], to peer: PeerInfo, id: String) async throws {
+        try SubnetValidation.validate(values)
+        guard LANDiscovery.isReachableHost(peer.address), DeviceIdentity.isFingerprint(peer.fingerprint),
+              let number = UInt16(exactly: peer.port), let port = NWEndpoint.Port(rawValue: number) else {
+            throw BoardcastError.invalid(L10n.string("对方设备尚不支持接收网段。"))
+        }
+        let session = Session()
+        try registerSend(id: id, session: session)
+        defer { unregister(id: id) }
+        var state = TransferProgress(id: id, direction: .sending, peerFingerprint: peer.fingerprint,
+            phase: .queued, completedBytes: 0, totalBytes: 0,
+            message: L10n.string("正在分享网段"), peerName: peer.name, kind: "subnets")
+        await onProgress?(state)
+        do {
+            try await withTaskCancellationHandler(operation: {
+                try await acquireSend(session)
+                defer { releaseSlot(); session.wire?.close() }
+                try session.checkCancellation()
+                let connection = NWConnection(host: NWEndpoint.Host(peer.address), port: port,
+                    using: try identity.parameters(expectedFingerprint: peer.fingerprint))
+                let wire = WireConnection(connection)
+                session.bind(wire)
+                state.phase = .preparing
+                await onProgress?(state)
+                try await wire.start()
+                wire.setIdleTimeout(15)
+                let authenticated = try DeviceIdentity.peerFingerprint(connection)
+                try await wire.sendJSON(hello(await settings()))
+                let response = try await wire.readJSON(WireMessage.self)
+                try Self.validateHello(response, fingerprint: authenticated)
+                guard response.capabilities?.contains(SubnetValidation.capability) == true else {
+                    throw Rejection(L10n.string("对方设备尚不支持接收网段。"))
+                }
+                try session.checkCancellation()
+                try await wire.sendJSON(WireMessage(type: "subnet-offer", version: 1,
+                    transferId: id, subnets: values.map(\.wireValue)))
+                wire.setIdleTimeout(130)
+                let deadline = DispatchWorkItem { wire.close() }
+                DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + 130, execute: deadline)
+                defer { deadline.cancel() }
+                var reply = try await wire.readJSON(WireMessage.self)
+                try Self.validateSubnetResponse(reply, transferId: id)
+                while reply.type == "subnet-pending" {
+                    state.phase = .awaitingApproval
+                    await onProgress?(state)
+                    reply = try await wire.readJSON(WireMessage.self)
+                    try Self.validateSubnetResponse(reply, transferId: id)
+                }
+                guard reply.type == "subnet-accept" else {
+                    throw Rejection(reply.message ?? L10n.string("对方未接受网段数据。"))
+                }
+                state.phase = .completed
+                state.message = L10n.string("接收方已接受网段")
+                await onProgress?(state)
+            }, onCancel: { self.cancel(id: id) })
+        } catch {
+            state.phase = session.isCancelled ? (session.explicitCancellation ? .cancelled : .interrupted)
+                : (error is Rejection ? .rejected : .failed)
+            state.message = error.localizedDescription
+            await onProgress?(state)
+            throw error
+        }
+    }
+
+    static func validateSubnetResponse(_ message: WireMessage, transferId: String) throws {
+        guard message.version == 1, message.transferId == transferId,
+              ["subnet-pending", "subnet-accept", "subnet-reject"].contains(message.type),
+              (message.message?.utf8.count ?? 0) <= 4096 else {
+            throw BoardcastError.invalid(L10n.string("网段分享确认无效。"))
         }
     }
 
