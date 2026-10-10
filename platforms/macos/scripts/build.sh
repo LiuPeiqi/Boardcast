@@ -13,10 +13,10 @@ xcodebuild -project "$PROJECT" -scheme "$SCHEME" \
 
 version="$(config_value MARKETING_VERSION)"
 build="$(config_value CURRENT_PROJECT_VERSION)"
-output="$MAC_ROOT/dist/local/Boardcast-$version-$build-$(basename "$run")"
+output="$ARTIFACTS_MAC/local/Boardcast-$version-$build-$(basename "$run")"
 mkdir -p "$output"
 ditto "$run/DerivedData/Build/Products/Release/Boardcast.app" "$output/Boardcast.app"
 verify_app "$output/Boardcast.app"
 ditto -c -k --sequesterRsrc --keepParent "$output/Boardcast.app" "$output/Boardcast-macOS-local.zip"
 printf 'Local ad-hoc signed app: %s\nTest results: %s\n' "$output/Boardcast.app" "$run/Tests.xcresult"
-printf 'This local build has not been notarized. Developer ID distribution uses release.sh.\n'
+printf 'Local Mac products stay under artifacts/macos/ (ignored). Formal DMG uses release.sh then publish.sh → dist/macos/.\n'

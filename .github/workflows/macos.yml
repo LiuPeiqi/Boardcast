@@ -17,5 +17,5 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: Boardcast-macOS-local-development
-          path: platforms/macos/dist/local/**/*.zip
+          path: artifacts/macos/local/**/*.zip
           if-no-files-found: error

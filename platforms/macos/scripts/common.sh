@@ -2,6 +2,9 @@
 # Local Apple tools only; compatible with the macOS Bash 3.2 installation.
 set -euo pipefail
 MAC_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
+# Repo layout: platforms/macos = source; artifacts/macos = local builds; dist/macos = published only.
+REPO_ROOT="$(cd "$MAC_ROOT/../.." && pwd -P)"
+ARTIFACTS_MAC="$REPO_ROOT/artifacts/macos"
 PROJECT="$MAC_ROOT/Boardcast.xcodeproj"
 SCHEME="Boardcast"
 fail() { printf 'Error: %s\n' "$*" >&2; exit 1; }
@@ -33,8 +36,8 @@ config_value() {
     printf '%s' "$value"
 }
 new_run_directory() {
-    mkdir -p "$MAC_ROOT/.build/xcode"
-    mktemp -d "$MAC_ROOT/.build/xcode/$1.XXXXXXXX"
+    mkdir -p "$ARTIFACTS_MAC/xcode"
+    mktemp -d "$ARTIFACTS_MAC/xcode/$1.XXXXXXXX"
 }
 test_project() {
     local run="$1"

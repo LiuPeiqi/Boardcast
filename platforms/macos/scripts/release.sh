@@ -29,7 +29,7 @@ xcodebuild -project "$PROJECT" -scheme "$SCHEME" \
 version="$(config_value MARKETING_VERSION)"
 build="$(config_value CURRENT_PROJECT_VERSION)"
 bundle_id="$(config_value BOARDCAST_BUNDLE_IDENTIFIER)"
-output="$MAC_ROOT/dist/release/Boardcast-$version-$build-$(basename "$run")"
+output="$ARTIFACTS_MAC/release/Boardcast-$version-$build-$(basename "$run")"
 app="$output/Boardcast.app"
 mkdir -p "$output"
 ditto "$run/Boardcast.xcarchive/Products/Applications/Boardcast.app" "$app"

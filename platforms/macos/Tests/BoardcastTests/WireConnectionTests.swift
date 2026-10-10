@@ -1,7 +1,7 @@
 import XCTest
 import Network
 import CryptoKit
-@testable import Boardcast
+@preconcurrency @testable import Boardcast
 
 final class WireConnectionTests: XCTestCase {
     private func wire() -> WireConnection { WireConnection(NWConnection(host: "127.0.0.1", port: 9, using: .tcp)) }
@@ -49,18 +49,24 @@ final class WireConnectionTests: XCTestCase {
         let listener = try NWListener(using: parameters, on: .any)
         let ready = expectation(description: "Loopback listener ready")
         let accepted = expectation(description: "Loopback connection accepted")
-        var incoming: WireConnection?
+        final class Incoming: @unchecked Sendable {
+            private let lock = NSLock()
+            private var value: WireConnection?
+            func store(_ connection: WireConnection) { lock.lock(); value = connection; lock.unlock() }
+            func take() -> WireConnection? { lock.lock(); defer { lock.unlock() }; return value }
+        }
+        let incoming = Incoming()
         listener.stateUpdateHandler = { state in if case .ready = state { ready.fulfill() } }
-        listener.newConnectionHandler = { incoming = WireConnection($0); accepted.fulfill() }
+        listener.newConnectionHandler = { incoming.store(WireConnection($0)); accepted.fulfill() }
         listener.start(queue: DispatchQueue(label: "Boardcast.WireFixture"))
-        defer { listener.cancel(); incoming?.close() }
+        defer { listener.cancel(); incoming.take()?.close() }
         await fulfillment(of: [ready], timeout: 3)
         let port = try XCTUnwrap(listener.port)
         let client = WireConnection(NWConnection(host: "127.0.0.1", port: port, using: .tcp))
         defer { client.close() }
         async let connected: Void = client.start()
         await fulfillment(of: [accepted], timeout: 3)
-        let server = try XCTUnwrap(incoming)
+        let server = try XCTUnwrap(incoming.take())
         try await server.start()
         try await connected
         client.setIdleTimeout(1)

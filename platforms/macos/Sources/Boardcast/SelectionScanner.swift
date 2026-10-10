@@ -65,7 +65,10 @@ enum SelectionScanner {
         func issue(_ path: String, _ reason: String) {
             issues.append(SelectionIssue(relativePath: path, reason: reason))
         }
-        func append(_ file: URL, relative: String, isRoot: Bool) throws -> Bool {
+        // `.prune` is only for directories. skipDescendants() on a regular file drops
+        // children of a later sibling directory.
+        enum Visit { case descend, prune, leaf }
+        func append(_ file: URL, relative: String, isRoot: Bool) throws -> Visit {
             try Task.checkCancellation()
             visited += 1
             guard visited <= maxEntries else {
@@ -79,26 +82,26 @@ enum SelectionScanner {
                 }
                 guard values.isSymbolicLink != true else {
                     issue(relative, L10n.string("Symbolic links cannot be transferred. Exclude this item to continue."))
-                    return false
+                    return values.isDirectory == true ? .prune : .leaf
                 }
                 guard values.isDirectory == true || values.isRegularFile == true else {
                     issue(relative, L10n.string("Special files cannot be transferred. Exclude this item to continue."))
-                    return false
+                    return values.isDirectory == true ? .prune : .leaf
                 }
                 // Foundation's deep enumerator does not traverse nested volumes.
                 // Explicit refusal prevents an offer from silently omitting them.
                 if !isRoot && (values.isVolume == true || values.isMountTrigger == true) {
                     issue(relative, L10n.string("A mounted volume must be added separately. Exclude this directory to continue."))
-                    return false
+                    return .prune
                 }
                 guard !relative.contains("\\") else {
                     issue(relative, L10n.string("A backslash in a file name cannot be preserved across platforms."))
-                    return false
+                    return values.isDirectory == true ? .prune : .leaf
                 }
                 let normalized = try ReceivePolicy.relativePath(relative)
                 guard values.isReadable != false, manager.isReadableFile(atPath: file.path) else {
                     issue(relative, L10n.string("The item cannot be read. Exclude it or change its permissions."))
-                    return false
+                    return values.isDirectory == true ? .prune : .leaf
                 }
                 let isDirectory = values.isDirectory == true
                 let size: Int64
@@ -107,24 +110,25 @@ enum SelectionScanner {
                 } else {
                     guard let fileSize = values.fileSize, fileSize >= 0 else {
                         issue(relative, L10n.string("The file size could not be read."))
-                        return false
+                        return .leaf
                     }
                     size = Int64(fileSize)
                 }
                 let addition = total.addingReportingOverflow(size)
                 guard !addition.overflow else {
                     issue(relative, L10n.string("The total file size exceeds the supported range."))
-                    return false
+                    return isDirectory ? .prune : .leaf
                 }
                 total = addition.partialValue
                 entries.append(TransferEntry(relativePath: normalized, size: size, isDirectory: isDirectory))
                 if !isDirectory { sources[normalized] = file }
-                return isDirectory
+                return isDirectory ? .descend : .leaf
             } catch is CancellationError {
                 throw CancellationError()
             } catch {
                 issue(relative, error.localizedDescription)
-                return false
+                let directory = (try? file.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory == true
+                return directory ? .prune : .leaf
             }
         }
 
@@ -140,7 +144,7 @@ enum SelectionScanner {
                 }
                 ancestor.deleteLastPathComponent()
             }
-            if try append(root, relative: rootName, isRoot: true) {
+            if try append(root, relative: rootName, isRoot: true) == .descend {
                 var enumerationFailures: [(URL, Error)] = []
                 guard let enumerator = manager.enumerator(at: root, includingPropertiesForKeys: Array(keys), options: [], errorHandler: { location, error in
                     enumerationFailures.append((location, error))
@@ -152,7 +156,7 @@ enum SelectionScanner {
                         throw BoardcastError.invalid(L10n.string("The scanned source escaped the selected directory."))
                     }
                     let relative = rootName + "/" + String(file.path.dropFirst(root.path.count + 1))
-                    if try append(file, relative: relative, isRoot: false) == false { enumerator.skipDescendants() }
+                    if try append(file, relative: relative, isRoot: false) == .prune { enumerator.skipDescendants() }
                 }
                 guard enumerationFailures.count <= maxEntries else {
                     throw BoardcastError.invalid(L10n.string("The directory has too many unreadable items; its scan is incomplete."))

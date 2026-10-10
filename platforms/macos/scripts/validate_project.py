@@ -132,9 +132,12 @@ def main():
                 require(settings["SKIP_INSTALL"] == "YES", "Only the app should be installed by the archive.")
                 require(settings["PRODUCT_BUNDLE_IDENTIFIER"] == "$(BOARDCAST_BUNDLE_IDENTIFIER).updater", "The helper identity must inherit the app identity.")
                 require(settings["OTHER_CODE_SIGN_FLAGS"] == "$(inherited) --identifier $(PRODUCT_BUNDLE_IDENTIFIER)", "Preserve release timestamp flags and explicit helper identity.")
+                require(settings.get("STRIP_INSTALLED_PRODUCT") == "NO", "Do not strip the already-signed helper product.")
+                require(settings.get("DEPLOYMENT_POSTPROCESSING") == "NO", "Skip postprocessing that would re-strip the helper.")
             elif name == "BoardcastTests":
                 require(settings["TEST_HOST"] == "$(BUILT_PRODUCTS_DIR)/Boardcast.app/Contents/MacOS/Boardcast", "Tests need the native app host.")
                 require(settings["BUNDLE_LOADER"] == "$(TEST_HOST)", "Tests need the app bundle loader.")
+                require(settings.get("MACOSX_DEPLOYMENT_TARGET") == "14.0", "XCTest from current Xcode is built for macOS 14.")
             else:
                 require(settings["PRODUCT_BUNDLE_IDENTIFIER"] == "$(BOARDCAST_BUNDLE_IDENTIFIER)", "App identity must have one source.")
     resource_phase = next(objects[key] for key in app["buildPhases"] if objects[key]["isa"] == "PBXResourcesBuildPhase")
@@ -160,6 +163,7 @@ def main():
     require(not any(item["isa"] in ("XCRemoteSwiftPackageReference", "XCSwiftPackageProductDependency") for item in objects.values()), "No remote build dependencies are allowed.")
 
     scheme = ET.parse(ROOT / "Boardcast.xcodeproj/xcshareddata/xcschemes/Boardcast.xcscheme").getroot()
+    require(scheme.attrib.get("LastUpgradeVersion") == "2600", "Scheme should match Xcode 26 recommended settings.")
     for reference in scheme.iter("BuildableReference"):
         require(reference.attrib["BlueprintIdentifier"] in project["targets"], "Scheme references an unknown target.")
     build_entries = scheme.findall("BuildAction/BuildActionEntries/BuildActionEntry")
@@ -188,6 +192,9 @@ def main():
     require(re.search(r"^SWIFT_VERSION\s*=\s*5\.0$", base, re.MULTILINE), "Compile in Swift 5 language mode.")
     require("ENABLE_HARDENED_RUNTIME = YES" in base and "ENABLE_APP_SANDBOX = NO" in base, "The native app and updater need the same hardened, non-sandbox configuration.")
     require("OTHER_CODE_SIGN_FLAGS = $(inherited) $(BOARDCAST_SIGNING_FLAGS)" in base, "Release must add timestamps without replacing helper identity flags.")
+    require("COPY_PHASE_STRIP = NO" in base, "Signed embeds must not be copy-stripped.")
+    require("DEAD_CODE_STRIPPING = YES" in base and "STRING_CATALOG_GENERATE_SYMBOLS = YES" in base, "Keep Xcode 26 recommended project settings.")
+    require(project["attributes"].get("LastUpgradeCheck") == "2600", "Acknowledge Xcode 26 recommended settings.")
     release = (ROOT / "Config/Release.xcconfig").read_text(encoding="utf-8")
     require("ARCHS = arm64 x86_64" in release and "ONLY_ACTIVE_ARCH = NO" in release, "Release must be universal.")
 

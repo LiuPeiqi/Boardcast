@@ -12,7 +12,7 @@ struct WireMessage: Codable {
 }
 
 /// Legacy v1 streaming only. Network.framework owns TLS and socket behavior.
-final class TransferService {
+final class TransferService: @unchecked Sendable {
     private let identity: DeviceIdentity
     private let settings: () async -> AppSettings
     private let queue = DispatchQueue(label: "Boardcast.Listener", qos: .utility)
@@ -293,6 +293,7 @@ final class TransferService {
             message: nil, peerName: peer.name)
         await onProgress?(state)
         do {
+            let cancelSend: @Sendable () -> Void = { [id] in self.cancel(id: id) }
             try await withTaskCancellationHandler(operation: {
                 try await acquireSend(session)
                 defer { releaseSlot(); session.wire?.close() }
@@ -351,7 +352,7 @@ final class TransferService {
                 state.savedFiles = prepared.entries.filter { !$0.isDirectory }.count
                 state.message = L10n.string("接收方已确认")
                 await onProgress?(state)
-            }, onCancel: { self.cancel(id: id) })
+            }, onCancel: cancelSend)
         } catch {
             if state.phase != .receiptUnconfirmed {
                 state.phase = session.isCancelled ? (session.explicitCancellation ? .cancelled : .interrupted)
@@ -403,7 +404,7 @@ final class TransferService {
         var errorDescription: String? { reason }
     }
 
-    private final class Session {
+    private final class Session: @unchecked Sendable {
         private let lock = NSLock()
         private var connection: WireConnection?
         private var approval: ApprovalWaiter?
@@ -421,7 +422,7 @@ final class TransferService {
             lock.lock(); approval = value; let cancel = cancelled; lock.unlock()
             if cancel { value?.resolve(.reject) }
         }
-        func cancellationAction(explicit: Bool) -> () -> Void {
+        func cancellationAction(explicit: Bool) -> @Sendable () -> Void {
             lock.lock(); cancelled = true; self.explicit = self.explicit || explicit
             let wire = connection; let pending = approval; lock.unlock()
             return { wire?.close(); pending?.resolve(.reject) }
@@ -429,21 +430,22 @@ final class TransferService {
         func cancel(explicit: Bool) { cancellationAction(explicit: explicit)() }
     }
 
-    private final class ApprovalWaiter {
+    private final class ApprovalWaiter: @unchecked Sendable {
         private let lock = NSLock()
         private var result: OfferApproval?
         private var continuation: CheckedContinuation<OfferApproval, Never>?
         private var task: Task<Void, Never>?
-        func wait(_ request: @escaping () async -> OfferApproval) async -> OfferApproval {
-            await withCheckedContinuation { continuation in
+        func wait(_ request: @escaping @Sendable () async -> OfferApproval) async -> OfferApproval {
+            await withCheckedContinuation { (continuation: CheckedContinuation<OfferApproval, Never>) in
                 lock.lock()
                 if let result { lock.unlock(); continuation.resume(returning: result); return }
                 self.continuation = continuation
                 lock.unlock()
-                let work = Task { self.resolve(await request()) }
+                let work = Task { [self] in self.resolve(await request()) }
                 lock.lock(); task = work; let finished = result != nil; lock.unlock()
                 if finished { work.cancel() }
-                DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + 300) { [weak self] in self?.resolve(.reject) }
+                let timeout: @Sendable () -> Void = { [self] in self.resolve(.reject) }
+                DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + 300, execute: timeout)
             }
         }
         func resolve(_ result: OfferApproval) {

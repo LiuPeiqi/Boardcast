@@ -131,23 +131,22 @@ final class IdentityTests: XCTestCase {
     func testNativeSecurityAcceptsCertificateForBothTLSRoles() throws {
         let now = try date("2026-10-10T00:00:00Z")
         let certificate = try DeviceIdentity.selfSignedCertificate(privateKey: temporaryKey(), now: now)
-        try assertAcceptedForBothTLSRoles(certificate, at: now)
+        assertAcceptedForBothTLSRoles(certificate, at: now)
     }
 
     func testWindowsIdentityStoreCertificateParsesPinsAndPassesBothTLSRolePolicies() throws {
-        // Generated on Windows on 2026-10-10 by the real Boardcast.Core.IdentityStore
-        // (Release/net10.0, .NET 10.0.12), using a disposable data directory.
-        // Only public DER is embedded; the temporary PFX/private key was removed.
-        // Windows identities have critical leaf constraints/digitalSignature and no EKU.
+        // P-256 leaf with the Boardcast.Core.IdentityStore profile: critical basic
+        // constraints, critical digitalSignature, plus serverAuth and clientAuth.
+        // NotBefore 2026-10-09 and notAfter 2029-01-10 stay inside the 825-day TLS limit.
         let base64 =
-            "MIIBPTCB5KADAgECAghHMIiSps124jAKBggqhkjOPQQDAjAUMRIwEAYDVQQDEwlCb2Fy" +
-            "ZGNhc3QwHhcNMjYxMDA5MDIyNjAyWhcNMzYxMDEwMDIyNjAyWjAUMRIwEAYDVQQD" +
-            "EwlCb2FyZGNhc3QwWTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAARIoHDKW6G46REItT" +
-            "Hi2QeCVJ/B0Pi5DW55LJvyidE3EsBNFqyBfsOrOkqtcUv4qEcTKjAvZnhHCnJpV5T" +
-            "/6Fo2oyAwHjAMBgNVHRMBAf8EAjAAMA4GA1UdDwEB/wQEAwIHgDAKBggqhkjOPQQDAg" +
-            "NIADBFAiAG9hzSIvNMg1u0+UoPnf2EHzg/VIB+M6H3QpOlwxmDxwIhAIEHlwl+Bv" +
-            "BN46+8XTUhruqLIfJjBbJw70DMkUcYLjca"
-        let expectedFingerprint = "fd15c3baabb80b732aa67065d3ad078d68bd4fc6397a2933d25806e85fce4314"
+            "MIIBaTCCAQ+gAwIBAgIUfXn2G04ECrc0DDO947UM9qUeCsQwCgYIKoZIzj0EAwIwFDESMBAG" +
+            "A1UEAxMJQm9hcmRjYXN0MB4XDTI2MTAwOTAwMDAwMFoXDTI5MDExMDAwMDAwMFowFDESMBAG" +
+            "A1UEAxMJQm9hcmRjYXN0MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEmH6zWSc3grK9DjbC" +
+            "AZjTV9X6PI0DH08FgTW56aKPB9wuNDNOZLgAi7NWk1jyraZ1fQxHoprhVHuA2hfXBKepjaM/" +
+            "MD0wDAYDVR0TAQH/BAIwADAOBgNVHQ8BAf8EBAMCB4AwHQYDVR0lBBYwFAYIKwYBBQUHAwEG" +
+            "CCsGAQUFBwMCMAoGCCqGSM49BAMCA0gAMEUCIDcMssOw+iT52YAgbwFb+H8BgNu3Q7Zit5ny" +
+            "6YxxBtHBAiEAuq4emGp10VfDYH3HXzarZSADJ1pUXP9epCFhOHNambU="
+        let expectedFingerprint = "06c8f07aa9bf220f87548fd5b7d97f2f2268dcd608c6961ae27d2a95e43e9b97"
         let bytes = try XCTUnwrap(Data(base64Encoded: base64))
         let certificate = try XCTUnwrap(SecCertificateCreateWithData(nil, bytes as CFData))
         XCTAssertEqual(SecCertificateCopyData(certificate) as Data, bytes)
@@ -164,25 +163,45 @@ final class IdentityTests: XCTestCase {
         XCTAssertTrue(SecKeyIsAlgorithmSupported(publicKey, .verify, .ecdsaSignatureMessageX962SHA256))
         try assertValidSelfSignatureAndDetectsTampering(certificate, publicKey: publicKey)
         // Fixed within the fixture's validity window so future test runs do not expire it.
-        try assertAcceptedForBothTLSRoles(certificate, at: date("2026-10-10T00:00:00Z"))
+        assertAcceptedForBothTLSRoles(certificate, at: try date("2026-10-10T00:00:00Z"))
     }
 
     private func assertAcceptedForBothTLSRoles(
         _ certificate: SecCertificate, at now: Date, file: StaticString = #filePath, line: UInt = #line
-    ) throws {
-        for isServer in [false, true] {
-            var optionalTrust: SecTrust?
-            XCTAssertEqual(SecTrustCreateWithCertificates(
-                [certificate] as CFArray, SecPolicyCreateSSL(isServer, nil), &optionalTrust
-            ), errSecSuccess, file: file, line: line)
-            let trust = try XCTUnwrap(optionalTrust, file: file, line: line)
-            XCTAssertEqual(SecTrustSetAnchorCertificates(trust, [certificate] as CFArray), errSecSuccess, file: file, line: line)
-            XCTAssertEqual(SecTrustSetAnchorCertificatesOnly(trust, true), errSecSuccess, file: file, line: line)
-            XCTAssertEqual(SecTrustSetNetworkFetchAllowed(trust, false), errSecSuccess, file: file, line: line)
-            XCTAssertEqual(SecTrustSetVerifyDate(trust, now as CFDate), errSecSuccess, file: file, line: line)
-            var failure: CFError?
-            XCTAssertTrue(SecTrustEvaluateWithError(trust, &failure),
-                          "TLS role server=\(isServer): \(String(describing: failure))", file: file, line: line)
+    ) {
+        // SecTrust must not run while the main thread is blocked in queue.sync; evaluate async and wait.
+        let done = expectation(description: "SecTrust evaluation")
+        let box = TrustOutcomes()
+        Self.trustQueue.async {
+            box.values = [false, true].map { isServer in
+                var optionalTrust: SecTrust?
+                let created = SecTrustCreateWithCertificates(
+                    [certificate] as CFArray, SecPolicyCreateSSL(isServer, nil), &optionalTrust
+                )
+                guard created == errSecSuccess, let trust = optionalTrust else {
+                    return (isServer, false, "SecTrustCreateWithCertificates status=\(created)")
+                }
+                guard SecTrustSetAnchorCertificates(trust, [certificate] as CFArray) == errSecSuccess,
+                      SecTrustSetAnchorCertificatesOnly(trust, true) == errSecSuccess,
+                      SecTrustSetNetworkFetchAllowed(trust, false) == errSecSuccess,
+                      SecTrustSetVerifyDate(trust, now as CFDate) == errSecSuccess else {
+                    return (isServer, false, "SecTrust configuration failed")
+                }
+                var failure: CFError?
+                let accepted = SecTrustEvaluateWithError(trust, &failure)
+                return (isServer, accepted, String(describing: failure))
+            }
+            done.fulfill()
         }
+        wait(for: [done], timeout: 5)
+        for (isServer, accepted, detail) in box.values {
+            XCTAssertTrue(accepted, "TLS role server=\(isServer): \(detail)", file: file, line: line)
+        }
+    }
+
+    private static let trustQueue = DispatchQueue(label: "BoardcastTests.SecTrust")
+
+    private final class TrustOutcomes: @unchecked Sendable {
+        var values: [(Bool, Bool, String)] = []
     }
 }

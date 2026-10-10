@@ -7,7 +7,7 @@ Mac 源码及原生 Xcode 工程位于 [`platforms/macos`](../../platforms/macos
 - `Boardcast-macOS-universal-<版本>-<构建号>.dmg`：同一个应用支持 Apple Silicon 与 Intel，应用内包含签名的 `BoardcastUpdater`。
 - 同名 `.dmg.sha256`：最终磁盘镜像的 SHA-256 校验值。
 
-本地测试及发布准备产物留在 Git 忽略的 `platforms/macos/.build/` 与 `platforms/macos/dist/`。`release.sh --prepare` 生成的 `NOT-NOTARIZED.dmg` 不能进入本目录。正式 `release.sh --notarize` 会先公证并装订应用票据，再生成、签名、公证并装订 DMG；只有全部验证通过才输出正式校验文件。凭据及具体命令见 [Mac 开发与发布说明](../../platforms/macos/DEVELOPMENT.md)。
+本地测试及发布准备产物留在 Git 忽略的 `artifacts/macos/`（`xcode/`、`local/`、`release/`）。`release.sh --prepare` 生成的 `NOT-NOTARIZED.dmg` 不能进入本目录。正式 `release.sh --notarize` 会先公证并装订应用票据，再生成、签名、公证并装订 DMG；只有全部验证通过才输出正式校验文件。凭据及具体命令见 [Mac 开发与发布说明](../../platforms/macos/DEVELOPMENT.md)。
 
 在 Mac 的 `platforms/macos` 目录显式执行以下命令，验证最终 DMG、应用与更新程序的签名身份、通用架构、公证票据及校验值后导出：
 

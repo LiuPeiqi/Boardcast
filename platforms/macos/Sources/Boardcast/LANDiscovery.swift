@@ -2,7 +2,7 @@ import Foundation
 import Darwin
 import SystemConfiguration
 
-struct DiscoveryMessage: Codable, Sendable {
+struct DiscoveryMessage: Sendable {
     var protocolVersion = 1
     var type = "announce"
     var fingerprint: String
@@ -18,11 +18,30 @@ struct DiscoveryMessage: Codable, Sendable {
     var updateVersion: String? = nil
 }
 
-extension DiscoveryMessage {
+extension DiscoveryMessage: Codable {
     private enum CodingKeys: String, CodingKey {
         case protocolVersion, type, fingerprint, name, groupName, platform, port, receivingEnabled
         case lanOnline, appVersion, runtime, updatePort, updateVersion
     }
+
+    func encode(to encoder: Encoder) throws {
+        var values = encoder.container(keyedBy: CodingKeys.self)
+        try values.encode(protocolVersion, forKey: .protocolVersion)
+        try values.encode(type, forKey: .type)
+        try values.encode(fingerprint, forKey: .fingerprint)
+        try values.encode(name, forKey: .name)
+        try values.encode(groupName, forKey: .groupName)
+        try values.encode(platform, forKey: .platform)
+        try values.encode(port, forKey: .port)
+        try values.encode(receivingEnabled, forKey: .receivingEnabled)
+        try values.encode(lanOnline, forKey: .lanOnline)
+        try values.encodeIfPresent(appVersion, forKey: .appVersion)
+        try values.encodeIfPresent(runtime, forKey: .runtime)
+        // A missing update port means "no update offer". Encoding 0 would invent one.
+        if updatePort != 0 { try values.encode(updatePort, forKey: .updatePort) }
+        try values.encodeIfPresent(updateVersion, forKey: .updateVersion)
+    }
+
     init(from decoder: Decoder) throws {
         let values = try decoder.container(keyedBy: CodingKeys.self)
         self.init(fingerprint: try values.decode(String.self, forKey: .fingerprint),

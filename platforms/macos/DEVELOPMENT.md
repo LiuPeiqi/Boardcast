@@ -32,15 +32,16 @@ xcodebuild -project Boardcast.xcodeproj -scheme Boardcast \
 bash scripts/build.sh
 ```
 
-`build.sh` 内部再次执行测试，随后构建通用 Release app。首次单独执行测试用于定位诊断；日常打包直接使用脚本即可。每次运行使用新目录，不覆盖旧产物：
+`build.sh` 内部再次执行测试，随后构建通用 Release app。首次单独执行测试用于定位诊断；日常打包直接使用脚本即可。每次运行使用新目录，不覆盖旧产物。路径均相对**仓库根**（与 Windows 的 `artifacts/` / `dist/` 语义一致）：
 
 | 产物 | 路径 |
 | --- | --- |
-| 本地 app / 开发 ZIP | `dist/local/Boardcast-<版本>-<build>-local.<随机值>/` |
-| 本地测试和 DerivedData | `.build/xcode/local.<随机值>/` |
-| 发布 app / universal DMG / SHA-256 | `dist/release/Boardcast-<版本>-<build>-release.<随机值>/` |
-| 发布 archive / 测试 / app 与 DMG 公证日志 | `.build/xcode/release.<随机值>/` |
-| 显式导出的正式 DMG / SHA-256 | 仓库根 `dist/macos/`；通过 `publish.sh` 验证后导出，拒绝覆盖 |
+| 本地 app / 开发 ZIP | `artifacts/macos/local/Boardcast-<版本>-<build>-local.<随机值>/` |
+| 本地测试和 DerivedData | `artifacts/macos/xcode/local.<随机值>/` |
+| 发布准备 app / universal DMG / SHA-256 | `artifacts/macos/release/Boardcast-<版本>-<build>-release.<随机值>/` |
+| 发布 archive / 测试 / 公证日志 | `artifacts/macos/xcode/release.<随机值>/` |
+| 正式入库 DMG / SHA-256 | `dist/macos/`（仅 `publish.sh` 验证后导出，拒绝覆盖） |
+| Mac 源码与工程 | `platforms/macos/`（不含可分发二进制） |
 
 本机 Run 可调试 UI 与基础传输。正式安装/更新验收先打开 DMG，把 `Boardcast.app` 拖到当前用户 `~/Applications/`，弹出映像后从应用目录启动；`/Applications/` 仅在已有写权限时可选。从 Downloads、DMG、AppTranslocation 或 Xcode DerivedData 运行不作为自更新安装位置。界面、登录项和本地网络权限用 app 形态验证；Terminal 的 `swift run` 不能替代。双架构生成也不等于两种架构已经运行通过。
 
@@ -139,7 +140,7 @@ UI 已写入共享 32 类文件图标、三类平台图标、实际本地普通�
 
 ## 发布与后续版本
 
-`Config/Base.xcconfig` 是 bundle ID、marketing version 和 build number 的唯一来源；当前预览版本为 **0.1.0 / 1**。正式版本按真实 Mac 行为递增，保持 bundle 与发行身份稳定。源码由用户通过 Git push/pull 同步；开发 `.build/`、`dist/` 已忽略。正式的一个 universal DMG 与 SHA-256 只有在本机完成验收后，才用 `publish.sh` 明确导出到仓库根 `dist/macos/`，脚本拒覆盖且不自动 Git 提交/上传。`dist/macos/*.dmg` 已配置 Git LFS；发布二进制时使用仓库现有 Git LFS 流程，这不是编译源码的依赖。
+`Config/Base.xcconfig` 是 bundle ID、marketing version 和 build number 的唯一来源；当前预览版本为 **0.1.0 / 1**。正式版本按真实 Mac 行为递增，保持 bundle 与发行身份稳定。源码由用户通过 Git push/pull 同步；`artifacts/` 与 `platforms/macos` 下历史遗留的 `.build/`/`dist/` 已忽略。正式的一个 universal DMG 与 SHA-256 只有在本机完成验收后，才用 `publish.sh` 明确导出到仓库根 `dist/macos/`，脚本拒覆盖且不自动 Git 提交/上传。`dist/macos/*.dmg` 已配置 Git LFS；发布二进制时使用仓库现有 Git LFS 流程，这不是编译源码的依赖。
 
 正式流程使用 [README 入口](README.md#dmg-安装与正式发布)：先实机验收，再 Developer ID 归档。`--prepare` 生成签名但未公证的 DMG，secure timestamp 可联网；`--notarize` 才明确提交 Apple。app 先公证并 staple，随后包装并签名、公证和 staple DMG，确保 hdiutil 挂载后的内部 app 也有离线票据。保留 archive、xcresult、helper/app/DMG 签名、entitlements、公证响应与日志、最终 DMG SHA-256，随后干净机器验收。仓库内可选 Mac CI 不构成本地计划的前置条件。
 

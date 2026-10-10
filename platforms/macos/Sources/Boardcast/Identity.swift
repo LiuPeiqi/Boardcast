@@ -117,9 +117,11 @@ final class DeviceIdentity {
         let commonName = DER.sequence(DER.tag(0x31, DER.sequence(
             DER.oid([0x55, 0x04, 0x03]) + DER.tag(0x0c, Data("Boardcast".utf8))
         )))
+        // Backdate one day for clock skew. TLS server policy rejects a leaf valid for more than 825 days.
+        let notBefore = now.addingTimeInterval(-86_400)
         let validity = try DER.sequence(
-            certificateTime(now.addingTimeInterval(-86400)) +
-            certificateTime(now.addingTimeInterval(10 * 365 * 86400))
+            certificateTime(notBefore) +
+            certificateTime(notBefore.addingTimeInterval(824 * 86_400))
         )
         let spki = DER.sequence(
             DER.sequence(

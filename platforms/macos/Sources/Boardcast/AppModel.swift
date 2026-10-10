@@ -50,7 +50,7 @@ final class AppModel: ObservableObject {
             let identity = try DeviceIdentity()
             fingerprint = identity.fingerprint
             let transport = TransferService(identity: identity, settings: { [weak self] in
-                await self?.runtimeSettings() ?? AppSettings()
+                self?.runtimeSettings() ?? AppSettings()
             })
             transport.onStatus = { [weak self] message in
                 Task { @MainActor in self?.status = message }

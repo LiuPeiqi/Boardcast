@@ -123,7 +123,7 @@ xcrun notarytool store-credentials "boardcast-notary" \
 
 app 本体先带 ticket 是本项目只读 hdiutil 挂载与局域网重打包的要求。Apple DTS 解释：用 `hdiutil` 挂载不像 Finder/NSWorkspace 一样自动 ingest DMG 票据，离线核验内部 app 时应先对 app 公证并 staple，再包装 DMG。对最终 DMG 另签名、公证并 staple 是此项目的正式发行策略，不把“只公证外层容器”误当作能覆盖全部离线更新路径。[Apple 离线 DMG 更新说明](https://developer.apple.com/forums/thread/741219)
 
-正式 DMG 在私有构建目录验收完成后，才通过独立 `publish.sh` 显式导出到仓库根 `dist/macos/`。该脚本验证 DMG 与内部 app/helper、签名、两架构、票据和 Gatekeeper，复制 DMG 与 SHA-256，拒绝覆盖既有同名产物；不会提交 Git 或自动上传。根 `dist/macos/*.dmg` 使用仓库已有 Git LFS 规则。用户自行 Git push/pull 源码，开发产物保留在忽略的 `platforms/macos/.build/` 与 `platforms/macos/dist/`。
+正式 DMG 在 `artifacts/macos/release/` 验收完成后，才通过独立 `publish.sh` 显式导出到仓库根 `dist/macos/`。该脚本验证 DMG 与内部 app/helper、签名、两架构、票据和 Gatekeeper，复制 DMG 与 SHA-256，拒绝覆盖既有同名产物；不会提交 Git 或自动上传。根 `dist/macos/*.dmg` 使用仓库已有 Git LFS 规则。用户自行 Git push/pull 源码；Mac 本地产物与 Windows 一样落在忽略的 `artifacts/`（`artifacts/macos/`），`platforms/macos/` 只保留源码与工程。
 
 最终在干净 Mac 用真实分发 DMG 安装，保留下载隔离语义；从应用目录启动、覆盖首次安装/升级/回滚/离线运行，并分别验收 Apple Silicon 和 Intel。开发机器命令成功不代替这一过程。[Apple 分发包验收](https://developer.apple.com/documentation/xcode/packaging-mac-software-for-distribution)
 

@@ -33,7 +33,8 @@ dist/Boardcast-win-x64-*/
 dist/Boardcast-win-arm64-*/
 dist/*.next-*/
 
-# macOS local build outputs
+# macOS: products go to artifacts/macos/ (covered by artifacts/ above).
+# Keep ignoring legacy in-tree build dirs and SwiftPM scratch.
 platforms/macos/.build/
 platforms/macos/dist/
 platforms/macos/.swiftpm/

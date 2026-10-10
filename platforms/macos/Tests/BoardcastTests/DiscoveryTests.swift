@@ -32,6 +32,17 @@ final class DiscoveryTests: XCTestCase {
         let json = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
         XCTAssertNil(json["updatePort"])
         XCTAssertNil(json["updateVersion"])
+
+        var offered = message
+        offered.updatePort = 47000
+        offered.updateVersion = "9.9.9"
+        let offeredData = try JSONEncoder().encode(offered)
+        let offeredJSON = try XCTUnwrap(JSONSerialization.jsonObject(with: offeredData) as? [String: Any])
+        XCTAssertEqual(offeredJSON["updatePort"] as? Int, 47000)
+        XCTAssertEqual(offeredJSON["updateVersion"] as? String, "9.9.9")
+        let decodedOffer = try XCTUnwrap(LANDiscovery.validatedMessage(offeredData, localFingerprint: localFingerprint))
+        XCTAssertEqual(decodedOffer.updatePort, 47000)
+        XCTAssertEqual(decodedOffer.updateVersion, "9.9.9")
     }
 
     func testGoodbyeIsAcceptedAsADeparturePacket() throws {

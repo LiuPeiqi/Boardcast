@@ -20,7 +20,7 @@ open Boardcast.xcodeproj
 bash scripts/build.sh
 ```
 
-本地脚本先执行 hosted XCTest，再构建含 updater 的双架构 Release app，并做 ad-hoc 签名与资源/架构检查。app 与开发 ZIP 位于 `platforms/macos/dist/local/` 的本次运行子目录，测试和 DerivedData 保留在 `.build/xcode/`。开发 ZIP 是本机应用验收包；正式发行用下述 DMG。SwiftPM 的 `swift test` 可补充检查同一份 app/Shared 源码，正式 app 始终用 Xcode 工程构建。
+本地脚本先执行 hosted XCTest，再构建含 updater 的双架构 Release app，并做 ad-hoc 签名与资源/架构检查。app 与开发 ZIP 位于仓库根 `artifacts/macos/local/` 的本次运行子目录，测试和 DerivedData 在 `artifacts/macos/xcode/`。开发 ZIP 是本机应用验收包；正式发行用下述 DMG。SwiftPM 的 `swift test` 可补充检查同一份 app/Shared 源码，正式 app 始终用 Xcode 工程构建。
 
 ## 基础互传与 Mac 更新
 
@@ -54,7 +54,7 @@ bash scripts/release.sh --prepare
 NOTARYTOOL_PROFILE="boardcast-notary" bash scripts/release.sh --notarize
 ```
 
-脚本先对 app 公证并 staple，再制作、签名、公证和 staple DMG，保留 Accepted 响应与日志。最终 `Boardcast-macOS-universal-<版本>-<build>.dmg` 和 SHA-256 位于 `platforms/macos/dist/release/` 的本次运行目录，归档与检查日志留在 `.build/xcode/`。
+脚本先对 app 公证并 staple，再制作、签名、公证和 staple DMG，保留 Accepted 响应与日志。最终 `Boardcast-macOS-universal-<版本>-<build>.dmg` 和 SHA-256 位于 `artifacts/macos/release/` 的本次运行目录，归档与检查日志留在 `artifacts/macos/xcode/`。
 
 实机验收后，可明确导出正式产物到仓库根 `dist/macos/`：
 

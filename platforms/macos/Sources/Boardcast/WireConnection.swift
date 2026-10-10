@@ -2,7 +2,7 @@ import Foundation
 import Network
 
 /// State, timers and continuation completion live on one queue.
-final class WireConnection {
+final class WireConnection: @unchecked Sendable {
     let connection: NWConnection
     static let maxFrame = 4 * 1024 * 1024
     private let queue = DispatchQueue(label: "Boardcast.TLS", qos: .utility)

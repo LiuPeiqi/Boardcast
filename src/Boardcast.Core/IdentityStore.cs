@@ -18,7 +18,12 @@ public sealed class IdentityStore : IDisposable
             var request = new CertificateRequest("CN=Boardcast", key, HashAlgorithmName.SHA256);
             request.CertificateExtensions.Add(new X509BasicConstraintsExtension(false, false, 0, true));
             request.CertificateExtensions.Add(new X509KeyUsageExtension(X509KeyUsageFlags.DigitalSignature, true));
-            using var certificate = request.CreateSelfSigned(DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddYears(10));
+            // TLS server policy rejects a leaf without serverAuth, and rejects one valid for more than 825 days.
+            // clientAuth is required as well once EKU is present, because the certificate is used in both roles.
+            var usages = new OidCollection { new Oid("1.3.6.1.5.5.7.3.1"), new Oid("1.3.6.1.5.5.7.3.2") };
+            request.CertificateExtensions.Add(new X509EnhancedKeyUsageExtension(usages, false));
+            var notBefore = DateTimeOffset.UtcNow.AddDays(-1);
+            using var certificate = request.CreateSelfSigned(notBefore, notBefore.AddDays(824));
             using var file = PrivateFile.Create(path);
             file.Write(certificate.Export(X509ContentType.Pfx));
         }
