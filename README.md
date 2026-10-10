@@ -8,6 +8,8 @@
 
 Windows 0.2.7 签名发行包包含自适应文件行、单行设备工具栏、单行设备列表、空列表点击添加和按需显示的文件操作。macOS 后续设计见 [产品与界面方案](docs/macos-design.md)，本地编写、构建与验收见 [Mac 开发交接](platforms/macos/DEVELOPMENT.md)。
 
+Android 手机和平板目前仅完成设计：[界面与操作方案](docs/android-design.md)、[文件与目录存储规范](docs/android-storage-design.md)。尚未创建 Android 工程或安装包。
+
 ## 使用
 
 整包解压后运行 **Boardcast.exe**。接收端也运行邻间，双方连接同一局域网：
@@ -147,6 +149,8 @@ dotnet run --project tests/Boardcast.LayoutTests -c Release -- --render-preview
 - [Steam 等官方资料与 P2P 调度取舍](docs/p2p-distribution-research.md)
 - [局域网版本更新](docs/peer-updates.md)
 - [文件图标调研与选型](docs/file-icons.md)
+- [Android 手机和平板设计](docs/android-design.md)
+- [Android 文件和目录存储设计](docs/android-storage-design.md)
 - [局域网协议](docs/protocol.md)
 - [工程取舍](docs/architecture.md)
 - [验证记录与当前限制](docs/verification.md)

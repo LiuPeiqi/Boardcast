@@ -8,14 +8,14 @@ enum ReceivePolicy {
               !components.contains(where: { $0.isEmpty || $0 == "." || $0 == ".." }),
               !path.unicodeScalars.contains(where: { $0.value < 32 || $0.value == 127 }),
               !path.contains(":"), !path.contains("\0") else {
-            throw BoardcastError.invalid("文件清单含不安全路径")
+            throw BoardcastError.invalid(L10n.string("文件清单含不安全路径"))
         }
         let reserved = ["CON", "PRN", "AUX", "NUL"] + (1...9).flatMap { ["COM\($0)", "LPT\($0)"] }
         for part in components {
             guard part.utf8.count <= 255, !part.hasSuffix(" "), !part.hasSuffix("."),
                   !part.contains(where: { "<>\"|?*".contains($0) }),
                   !reserved.contains(String(part.split(separator: ".")[0]).uppercased()) else {
-                throw BoardcastError.invalid("文件名无法安全跨平台保存")
+                throw BoardcastError.invalid(L10n.string("文件名无法安全跨平台保存"))
             }
         }
         return path
@@ -23,9 +23,12 @@ enum ReceivePolicy {
 
     static func validate(_ offer: TransferOffer, settings: AppSettings) throws {
         guard !offer.entries.isEmpty, offer.entries.count <= settings.maxEntries,
-              offer.id.range(of: "^[A-Za-z0-9-]{1,64}$", options: .regularExpression) != nil,
-              offer.senderName.utf8.count <= 512, offer.summary.utf8.count <= 16_384 else {
-            throw BoardcastError.invalid("文件清单超出限制")
+              (1...64).contains(offer.id.utf8.count), offer.id.utf8.allSatisfy({ (48...57).contains($0) || (65...90).contains($0) || (97...122).contains($0) || $0 == 45 }),
+              offer.senderName.utf16.count <= 256, offer.summary.utf16.count <= 16_384 else {
+            throw BoardcastError.invalid(L10n.string("文件清单超出限制"))
+        }
+        guard try JSONEncoder().encode(offer).count <= 3 * 1024 * 1024 else {
+            throw BoardcastError.invalid(L10n.string("文件清单消息超过 3 MiB 限额"))
         }
         var seen = Set<String>()
         var files = Set<String>()
@@ -34,9 +37,10 @@ enum ReceivePolicy {
         for entry in offer.entries {
             let normalized = try relativePath(entry.relativePath).precomposedStringWithCanonicalMapping.lowercased()
             guard seen.insert(normalized).inserted, entry.size >= 0,
-                  !entry.isDirectory || entry.size == 0 else { throw BoardcastError.invalid("文件清单有重复项或错误大小") }
+                  !entry.isDirectory || entry.size == 0 else { throw BoardcastError.invalid(L10n.string("文件清单有重复项或错误大小")) }
             let addition = total.addingReportingOverflow(entry.size)
-            guard !addition.overflow, addition.partialValue <= settings.maxTransferBytes else { throw BoardcastError.invalid("传输超过接收限额") }
+            guard !addition.overflow else { throw BoardcastError.invalid(L10n.string("文件大小累计溢出")) }
+            guard addition.partialValue <= settings.maxTransferBytes else { throw BoardcastError.invalid(L10n.string("传输超过接收限额")) }
             total = addition.partialValue
             if !entry.isDirectory { files.insert(normalized) }
             all.append(normalized)
@@ -44,7 +48,7 @@ enum ReceivePolicy {
         for path in all {
             var parent = (path as NSString).deletingLastPathComponent
             while !parent.isEmpty {
-                guard !files.contains(parent) else { throw BoardcastError.invalid("文件清单存在文件/目录冲突") }
+                guard !files.contains(parent) else { throw BoardcastError.invalid(L10n.string("文件清单存在文件/目录冲突")) }
                 parent = (parent as NSString).deletingLastPathComponent
             }
         }
@@ -52,18 +56,18 @@ enum ReceivePolicy {
 
     static func evaluate(settings: AppSettings, offer: TransferOffer, fingerprint: String) throws -> ReceiveDecision {
         try validate(offer, settings: settings)
-        guard fingerprint.range(of: "^[a-fA-F0-9]{64}$", options: .regularExpression) != nil,
+        guard DeviceIdentity.isFingerprint(fingerprint),
               offer.senderFingerprint.caseInsensitiveCompare(fingerprint) == .orderedSame else {
-            throw BoardcastError.invalid("TLS 身份与发送清单不一致")
+            throw BoardcastError.invalid(L10n.string("TLS 身份与发送清单不一致"))
         }
         let rule = settings.rules.first { $0.enabled && matches($0, offer: offer, fingerprint: fingerprint) }
         let destination = rule?.destination.isEmpty == false ? rule!.destination : settings.receiveDirectory
-        guard destination.hasPrefix("/") else { throw BoardcastError.invalid("接收路径必须为绝对路径") }
+        guard destination.hasPrefix("/") else { throw BoardcastError.invalid(L10n.string("接收路径必须为绝对路径")) }
         let devices = settings.devices.filter { $0.fingerprint.caseInsensitiveCompare(fingerprint) == .orderedSame }
-        guard settings.receivingEnabled else { return .init(autoAccept: false, destination: destination, reason: "接收已暂停") }
-        guard devices.count == 1, devices[0].trusted else { return .init(autoAccept: false, destination: destination, reason: "新设备，需要核对指纹并确认") }
-        guard devices[0].autoAccept, let rule, rule.autoAccept else { return .init(autoAccept: false, destination: destination, reason: "需要手动确认") }
-        return .init(autoAccept: true, destination: destination, reason: "匹配规则：\(rule.name)")
+        guard settings.receivingEnabled else { return .init(autoAccept: false, destination: destination, reason: L10n.string("接收已暂停")) }
+        guard devices.count == 1, devices[0].trusted else { return .init(autoAccept: false, destination: destination, reason: L10n.string("新设备，需要核对指纹并确认")) }
+        guard devices[0].autoAccept, let rule, rule.autoAccept else { return .init(autoAccept: false, destination: destination, reason: L10n.string("需要手动确认")) }
+        return .init(autoAccept: true, destination: destination, reason: L10n.format("匹配规则：%@", rule.name))
     }
 
     static func matches(_ rule: ReceiveRule, offer: TransferOffer, fingerprint: String) -> Bool {
@@ -108,9 +112,10 @@ enum ReceivePolicy {
 
     static func safeDestination(root: URL, relative: String) throws -> URL {
         let normalized = try relativePath(relative)
-        let base = root.standardizedFileURL
-        let result = base.appendingPathComponent(normalized).standardizedFileURL
-        guard result.path.hasPrefix(base.path + "/") else { throw BoardcastError.invalid("接收路径越界") }
+        let base = root.standardized
+        let result = base.appendingPathComponent(normalized).standardized
+        let prefix = base.path == "/" ? "/" : base.path + "/"
+        guard result.path.hasPrefix(prefix), result.path != base.path else { throw BoardcastError.invalid(L10n.string("接收路径越界")) }
 
         // Refuse symlinks in every existing ancestor, including the selected root.
 
@@ -118,7 +123,7 @@ enum ReceivePolicy {
         for component in result.pathComponents.dropFirst() {
             ancestor.appendPathComponent(component)
             let attributes = try? FileManager.default.attributesOfItem(atPath: ancestor.path)
-            if attributes?[.type] as? FileAttributeType == .typeSymbolicLink { throw BoardcastError.invalid("接收路径含符号链接") }
+            if attributes?[.type] as? FileAttributeType == .typeSymbolicLink { throw BoardcastError.invalid(L10n.string("接收路径含符号链接")) }
         }
 
         return result

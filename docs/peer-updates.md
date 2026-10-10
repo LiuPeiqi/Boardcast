@@ -59,4 +59,12 @@ ECDSA 发行签名保护此便携版更新流程，和 Windows Authenticode、Sm
 
 普通文件的 P2P 与更新多来源共享 `ChunkPeerPolicy` 的大小门槛、实测速度判断、受限试探和退避；普通文件还受同批接收批准和发送者授权约束。研究依据和边界见[P2P 分发研究](p2p-distribution-research.md)。
 
-测试项目 `Boardcast.AutomaticUpdateTests` 保留历史名称，当前覆盖默认/旧配置禁用自动下载和手动版本目录等行为；名称不表示产品仍提供自动下载。macOS 更新与正式发行证书准备本轮暂缓。
+测试项目 `Boardcast.AutomaticUpdateTests` 保留历史名称，当前覆盖默认/旧配置禁用自动下载和手动版本目录等行为；名称不表示产品仍提供自动下载。
+
+## macOS 分发与更新
+
+上述 ECDSA 清单、ZIP、分块恢复与 Windows 安装器描述适用于 Windows。Mac 已编写独立的原生更新链路：一个同时包含 Intel 与 Apple Silicon 的 `osx-universal` app 和 DMG，使用 Developer ID Application、固定 Team/bundle identifier 与 Apple 公证作为执行授权。已安装的正式 Mac app 可在局域网分享自身版本，开发签名版禁用更新；只接受三段营销版本严格提高的同平台版本，不以同版本 build 增加触发升级。
+
+Mac 用户明确下载后，重新验证来源设备 mTLS 指纹、镜像大小和 SHA-256，并用系统工具挂载、复制及验证 app。用户点击重启并更新、文件任务和更新操作均结束后，嵌入的已签名双架构 helper 等待指定旧实例自然退出，在用户可写的应用目录中使用系统同卷替换与备份，并核对新实例的启动确认。新进程仍运行但未确认时保留备份与结果，不强行结束可能正在处理文件的应用。此版本不提供 Mac 更新的分块续传或多来源下载。
+
+Mac 与 Windows 的普通文件互传继续使用共同的 legacy 文件协议；两平台可传文件，不能相互安装对方的更新格式。源码、app 内部结构、私有数据路径、正式 DMG 发布步骤及 Mac 验收项见 [Mac 开发说明](../platforms/macos/DEVELOPMENT.md)。当前仅完成源码与静态检查，Xcode 编译、正式签名/公证、Mac 双架构升级及真实跨平台互传均待 Mac 验收。

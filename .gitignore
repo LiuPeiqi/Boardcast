@@ -38,3 +38,7 @@ platforms/macos/.build/
 platforms/macos/dist/
 platforms/macos/.swiftpm/
 platforms/macos/.DS_Store
+
+# Xcode per-user state
+**/xcuserdata/
+*.xcuserstate

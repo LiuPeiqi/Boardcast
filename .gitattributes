@@ -1,3 +1,9 @@
 # Git LFS for official distribution binaries
 dist/*.zip filter=lfs diff=lfs merge=lfs -text
 dist/*.exe filter=lfs diff=lfs merge=lfs -text
+
+# macOS shell scripts must retain LF when copied or checked out on Windows.
+platforms/macos/**/*.sh text eol=lf
+
+# macOS formal distribution uses a separate platform namespace.
+dist/macos/*.dmg filter=lfs diff=lfs merge=lfs -text

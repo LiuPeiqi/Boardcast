@@ -1,0 +1,716 @@
+{
+  "schemaVersion": 1,
+  "previewOnly": false,
+  "sourceVersion": "0.2.7",
+  "pixelSize": 112,
+  "sourceTypeCount": 32,
+  "assetCount": 35,
+  "sourceHashes": {
+    "src/Boardcast.Windows/FileItemIcon.cs": "040f062ab6f3bb458789f8682fd6e6e463f9bff889e08e89919f61c3ba66e1d6",
+    "src/Boardcast.Windows/MainWindow.xaml.cs": "4f69afaab281e7df13aaef772fd914e6a9b9efd2a382504364a62f32da45db54"
+  },
+  "license": {
+    "name": "MIT",
+    "upstream": "Material Icon Theme / Material Extensions",
+    "source": "docs/third-party/Material-Icon-Theme.LICENSE",
+    "included": "ThirdParty/Material-Icon-Theme.LICENSE"
+  },
+  "nativeFolderOverride": {
+    "windows": "folder.png preserves source geometry and #E3AC45 fill",
+    "macos": "Prefer NSWorkspace system folder icon in the native app; folder-macos.png is only a Windows-authored preview representative.",
+    "previewBlue": "#5ABDE6",
+    "sameGeometry": true
+  },
+  "render": {
+    "format": "PNG",
+    "alpha": "transparent BGRA32",
+    "platformStretch": "Uniform, matching WPF Path Stretch",
+    "localFileAccess": "Classification uses names and extensions only; export opens no sample file."
+  },
+  "extensionMapping": {
+    ".png": "image",
+    ".jpg": "image",
+    ".jpeg": "image",
+    ".gif": "image",
+    ".webp": "image",
+    ".bmp": "image",
+    ".tif": "image",
+    ".tiff": "image",
+    ".ico": "image",
+    ".svg": "image",
+    ".heic": "image",
+    ".avif": "image",
+    ".psd": "image",
+    ".pdf": "pdf",
+    ".zip": "zip",
+    ".7z": "zip",
+    ".rar": "zip",
+    ".tar": "zip",
+    ".gz": "zip",
+    ".tgz": "zip",
+    ".bz2": "zip",
+    ".xz": "zip",
+    ".zst": "zip",
+    ".iso": "zip",
+    ".mp3": "audio",
+    ".wav": "audio",
+    ".flac": "audio",
+    ".aac": "audio",
+    ".m4a": "audio",
+    ".ogg": "audio",
+    ".opus": "audio",
+    ".wma": "audio",
+    ".aiff": "audio",
+    ".mid": "audio",
+    ".midi": "audio",
+    ".mp4": "video",
+    ".mkv": "video",
+    ".mov": "video",
+    ".avi": "video",
+    ".webm": "video",
+    ".wmv": "video",
+    ".m4v": "video",
+    ".mpeg": "video",
+    ".mpg": "video",
+    ".txt": "document",
+    ".log": "document",
+    ".rtf": "document",
+    ".odt": "document",
+    ".epub": "document",
+    ".doc": "word",
+    ".docx": "word",
+    ".docm": "word",
+    ".dot": "word",
+    ".dotx": "word",
+    ".xls": "table",
+    ".xlsx": "table",
+    ".xlsm": "table",
+    ".ods": "table",
+    ".csv": "table",
+    ".tsv": "table",
+    ".ppt": "powerpoint",
+    ".pptx": "powerpoint",
+    ".pptm": "powerpoint",
+    ".odp": "powerpoint",
+    ".md": "markdown",
+    ".markdown": "markdown",
+    ".rst": "markdown",
+    ".json": "json",
+    ".jsonc": "json",
+    ".json5": "json",
+    ".jsonl": "json",
+    ".ipynb": "json",
+    ".yaml": "settings",
+    ".yml": "settings",
+    ".toml": "settings",
+    ".ini": "settings",
+    ".cfg": "settings",
+    ".conf": "settings",
+    ".config": "settings",
+    ".props": "settings",
+    ".targets": "settings",
+    ".csproj": "settings",
+    ".sln": "settings",
+    ".slnx": "settings",
+    ".env": "settings",
+    ".xml": "xml",
+    ".xaml": "xml",
+    ".vue": "xml",
+    ".php": "xml",
+    ".rb": "xml",
+    ".swift": "xml",
+    ".kt": "xml",
+    ".kts": "xml",
+    ".dart": "xml",
+    ".lua": "xml",
+    ".js": "javascript",
+    ".mjs": "javascript",
+    ".cjs": "javascript",
+    ".jsx": "javascript",
+    ".ts": "typescript",
+    ".tsx": "typescript",
+    ".mts": "typescript",
+    ".cts": "typescript",
+    ".py": "python",
+    ".pyw": "python",
+    ".pyi": "python",
+    ".cs": "csharp",
+    ".csx": "csharp",
+    ".c": "c",
+    ".h": "c",
+    ".cpp": "cpp",
+    ".hpp": "cpp",
+    ".cc": "cpp",
+    ".cxx": "cpp",
+    ".hxx": "cpp",
+    ".rs": "rust",
+    ".java": "java",
+    ".jar": "java",
+    ".class": "java",
+    ".go": "go",
+    ".html": "html",
+    ".htm": "html",
+    ".xhtml": "html",
+    ".css": "css",
+    ".scss": "css",
+    ".sass": "css",
+    ".less": "css",
+    ".patch": "git",
+    ".diff": "git",
+    ".ps1": "console",
+    ".psm1": "console",
+    ".psd1": "console",
+    ".bat": "console",
+    ".cmd": "console",
+    ".sh": "console",
+    ".bash": "console",
+    ".zsh": "console",
+    ".sql": "database",
+    ".db": "database",
+    ".sqlite": "database",
+    ".sqlite3": "database",
+    ".mdb": "database",
+    ".pem": "lock",
+    ".key": "lock",
+    ".crt": "lock",
+    ".cer": "lock",
+    ".pfx": "lock",
+    ".p12": "lock",
+    ".lock": "lock",
+    ".exe": "exe",
+    ".msi": "exe",
+    ".msix": "exe",
+    ".appx": "exe",
+    ".dll": "exe",
+    ".ttf": "font",
+    ".otf": "font",
+    ".woff": "font",
+    ".woff2": "font"
+  },
+  "namedMapping": {
+    ".gitignore": "git",
+    ".gitattributes": "git",
+    ".gitmodules": "git",
+    ".gitkeep": "git",
+    "dockerfile": "settings",
+    "makefile": "settings",
+    "cmakelists.txt": "settings",
+    ".editorconfig": "settings",
+    ".env": "settings",
+    "readme": "document",
+    "license": "document",
+    "licence": "document",
+    "copying": "document"
+  },
+  "fallback": "file",
+  "directory": "folder",
+  "platformMapping": {
+    "windows": "platform-windows",
+    "macos": "platform-macos",
+    "mac": "platform-macos",
+    "osx": "platform-macos",
+    "unknown": "platform-unknown"
+  },
+  "assets": [
+    {
+      "id": "folder",
+      "file": "folder.png",
+      "source": "src/Boardcast.Windows/FileItemIcon.cs",
+      "variant": "source",
+      "colors": [
+        "#E3AC45"
+      ],
+      "width": 112,
+      "height": 112,
+      "transparentPixels": 6111,
+      "paintedPixels": 6433,
+      "sha256": "bc2dc74a2d28e19a77622b03371f5b92d4d8859ab75abc43e5c9cee17529dbec"
+    },
+    {
+      "id": "file",
+      "file": "file.png",
+      "source": "src/Boardcast.Windows/FileItemIcon.cs",
+      "variant": "source",
+      "colors": [
+        "#8A96A4"
+      ],
+      "width": 112,
+      "height": 112,
+      "transparentPixels": 8699,
+      "paintedPixels": 3845,
+      "sha256": "5a6a16ef465f77e89a731aa201c26b61a697884dee8764c4c01c9d26e1ce4af0"
+    },
+    {
+      "id": "image",
+      "file": "image.png",
+      "source": "src/Boardcast.Windows/FileItemIcon.cs",
+      "variant": "source",
+      "colors": [
+        "#26A69A"
+      ],
+      "width": 112,
+      "height": 112,
+      "transparentPixels": 7062,
+      "paintedPixels": 5482,
+      "sha256": "d9ca604c0fa73b95a970f3988e146800838953bcdfd910593cdb5d9f7c09df09"
+    },
+    {
+      "id": "pdf",
+      "file": "pdf.png",
+      "source": "src/Boardcast.Windows/FileItemIcon.cs",
+      "variant": "source",
+      "colors": [
+        "#EF5350"
+      ],
+      "width": 112,
+      "height": 112,
+      "transparentPixels": 6737,
+      "paintedPixels": 5807,
+      "sha256": "6b636fa5e03e00da7a3ab42e5e8be9b5a6d2be39ac4d8a1031e9d498de3fa874"
+    },
+    {
+      "id": "zip",
+      "file": "zip.png",
+      "source": "src/Boardcast.Windows/FileItemIcon.cs",
+      "variant": "source",
+      "colors": [
+        "#AFB42B"
+      ],
+      "width": 112,
+      "height": 112,
+      "transparentPixels": 6008,
+      "paintedPixels": 6536,
+      "sha256": "ad306cb8a5e53e1a97175dec02c1da3ae409e5c9d15e279711e573b30fa1a275"
+    },
+    {
+      "id": "audio",
+      "file": "audio.png",
+      "source": "src/Boardcast.Windows/FileItemIcon.cs",
+      "variant": "source",
+      "colors": [
+        "#EF5350"
+      ],
+      "width": 112,
+      "height": 112,
+      "transparentPixels": 5856,
+      "paintedPixels": 6688,
+      "sha256": "7325b5894a71622d6d9c72d6dbfd993ff4875f3028969251e12ab0d3abe47451"
+    },
+    {
+      "id": "video",
+      "file": "video.png",
+      "source": "src/Boardcast.Windows/FileItemIcon.cs",
+      "variant": "source",
+      "colors": [
+        "#FF9800"
+      ],
+      "width": 112,
+      "height": 112,
+      "transparentPixels": 6547,
+      "paintedPixels": 5997,
+      "sha256": "6bd748ba46a6fa4e41288a1d3dd84148ce7183fa2eed665e149cd73ed5dfb56c"
+    },
+    {
+      "id": "document",
+      "file": "document.png",
+      "source": "src/Boardcast.Windows/FileItemIcon.cs",
+      "variant": "source",
+      "colors": [
+        "#42A5F5"
+      ],
+      "width": 112,
+      "height": 112,
+      "transparentPixels": 8699,
+      "paintedPixels": 3845,
+      "sha256": "684ca964b6512e7da50b099cf207cd85f79c97d3a15ddd49893329ec8879da21"
+    },
+    {
+      "id": "word",
+      "file": "word.png",
+      "source": "src/Boardcast.Windows/FileItemIcon.cs",
+      "variant": "source",
+      "colors": [
+        "#01579B"
+      ],
+      "width": 112,
+      "height": 112,
+      "transparentPixels": 7250,
+      "paintedPixels": 5294,
+      "sha256": "5aa60586ae7647455f620b63b29cfa250bf7a3887c004a4348494f06a5f15c38"
+    },
+    {
+      "id": "table",
+      "file": "table.png",
+      "source": "src/Boardcast.Windows/FileItemIcon.cs",
+      "variant": "source",
+      "colors": [
+        "#8BC34A"
+      ],
+      "width": 112,
+      "height": 112,
+      "transparentPixels": 7116,
+      "paintedPixels": 5428,
+      "sha256": "aef89344ab3bec199cd8c92307f0bd977b8bf0508c250206ba13240bee05671d"
+    },
+    {
+      "id": "powerpoint",
+      "file": "powerpoint.png",
+      "source": "src/Boardcast.Windows/FileItemIcon.cs",
+      "variant": "source",
+      "colors": [
+        "#E64A19"
+      ],
+      "width": 112,
+      "height": 112,
+      "transparentPixels": 7009,
+      "paintedPixels": 5535,
+      "sha256": "34f8413b300da269080b56f54fb09b53c6ff1192b7d72bc779d872106e879a26"
+    },
+    {
+      "id": "markdown",
+      "file": "markdown.png",
+      "source": "src/Boardcast.Windows/FileItemIcon.cs",
+      "variant": "source",
+      "colors": [
+        "#42A5F5"
+      ],
+      "width": 112,
+      "height": 112,
+      "transparentPixels": 10244,
+      "paintedPixels": 2300,
+      "sha256": "172fdb8e4916cd6b46ccbc47555fd6116c329dca5ba506ce5d80574306eecc7a"
+    },
+    {
+      "id": "json",
+      "file": "json.png",
+      "source": "src/Boardcast.Windows/FileItemIcon.cs",
+      "variant": "source",
+      "colors": [
+        "#F9A825"
+      ],
+      "width": 112,
+      "height": 112,
+      "transparentPixels": 10177,
+      "paintedPixels": 2367,
+      "sha256": "27e87a924e56f9db4b5896f715c64d8dbc297900a1a8f97b1482ce2f591121e8"
+    },
+    {
+      "id": "settings",
+      "file": "settings.png",
+      "source": "src/Boardcast.Windows/FileItemIcon.cs",
+      "variant": "source",
+      "colors": [
+        "#42A5F5"
+      ],
+      "width": 112,
+      "height": 112,
+      "transparentPixels": 8270,
+      "paintedPixels": 4274,
+      "sha256": "b750c68da7c9ba3cafe4340c953e5e34f7025f2ac47b27ad8bf8cb80ed2b3b4b"
+    },
+    {
+      "id": "xml",
+      "file": "xml.png",
+      "source": "src/Boardcast.Windows/FileItemIcon.cs",
+      "variant": "source",
+      "colors": [
+        "#8BC34A"
+      ],
+      "width": 112,
+      "height": 112,
+      "transparentPixels": 6809,
+      "paintedPixels": 5735,
+      "sha256": "e3ef61ad0f208882c12e48069b1ff1580411de1374be6a93ab422efed88f0475"
+    },
+    {
+      "id": "javascript",
+      "file": "javascript.png",
+      "source": "src/Boardcast.Windows/FileItemIcon.cs",
+      "variant": "source",
+      "colors": [
+        "#FFCA28"
+      ],
+      "width": 112,
+      "height": 112,
+      "transparentPixels": 6307,
+      "paintedPixels": 6237,
+      "sha256": "6194b2c8801871f3e98b35e0238590f871da8d974743984ea25e6e1f85ff1c72"
+    },
+    {
+      "id": "typescript",
+      "file": "typescript.png",
+      "source": "src/Boardcast.Windows/FileItemIcon.cs",
+      "variant": "source",
+      "colors": [
+        "#0288D1"
+      ],
+      "width": 112,
+      "height": 112,
+      "transparentPixels": 6295,
+      "paintedPixels": 6249,
+      "sha256": "af66b05576b2d68408e2f9b675f91f738fbe3f8430f769cff5e187dd03a3f292"
+    },
+    {
+      "id": "python",
+      "file": "python.png",
+      "source": "src/Boardcast.Windows/FileItemIcon.cs",
+      "variant": "source",
+      "colors": [
+        "#0288D1",
+        "#FDD835"
+      ],
+      "width": 112,
+      "height": 112,
+      "transparentPixels": 6877,
+      "paintedPixels": 5667,
+      "sha256": "edfb84c3bfa10012a2797443001ca7ce9bc9eed35e960e43d7cba179ae1e370d"
+    },
+    {
+      "id": "csharp",
+      "file": "csharp.png",
+      "source": "src/Boardcast.Windows/FileItemIcon.cs",
+      "variant": "source",
+      "colors": [
+        "#0288D1"
+      ],
+      "width": 112,
+      "height": 112,
+      "transparentPixels": 8626,
+      "paintedPixels": 3918,
+      "sha256": "863068b6b234e71d0c1124dc2a8a8a1e77a90d538d5a29dd212ac3a40b02adfe"
+    },
+    {
+      "id": "c",
+      "file": "c.png",
+      "source": "src/Boardcast.Windows/FileItemIcon.cs",
+      "variant": "source",
+      "colors": [
+        "#0288D1"
+      ],
+      "width": 112,
+      "height": 112,
+      "transparentPixels": 9606,
+      "paintedPixels": 2938,
+      "sha256": "b478ebb8bae5c83855263b56e0ecb4275abf834caee503d54469eef62cdbd5b5"
+    },
+    {
+      "id": "cpp",
+      "file": "cpp.png",
+      "source": "src/Boardcast.Windows/FileItemIcon.cs",
+      "variant": "source",
+      "colors": [
+        "#0288D1"
+      ],
+      "width": 112,
+      "height": 112,
+      "transparentPixels": 8773,
+      "paintedPixels": 3771,
+      "sha256": "538248c94a628329238319300964874382ffe257eb25b97f19b2db2f3e3b93c9"
+    },
+    {
+      "id": "rust",
+      "file": "rust.png",
+      "source": "src/Boardcast.Windows/FileItemIcon.cs",
+      "variant": "source",
+      "colors": [
+        "#FF7043"
+      ],
+      "width": 112,
+      "height": 112,
+      "transparentPixels": 7960,
+      "paintedPixels": 4584,
+      "sha256": "ca7dda0c192d31f50a7a7ba2124b66258e798dcde786a43c57cc748c21464bb9"
+    },
+    {
+      "id": "java",
+      "file": "java.png",
+      "source": "src/Boardcast.Windows/FileItemIcon.cs",
+      "variant": "source",
+      "colors": [
+        "#F44336"
+      ],
+      "width": 112,
+      "height": 112,
+      "transparentPixels": 7623,
+      "paintedPixels": 4921,
+      "sha256": "e5ec659840ca7e5ea183afcca523533eeba39119a3b8588d861d96c04903f261"
+    },
+    {
+      "id": "go",
+      "file": "go.png",
+      "source": "src/Boardcast.Windows/FileItemIcon.cs",
+      "variant": "source",
+      "colors": [
+        "#00ACC1"
+      ],
+      "width": 112,
+      "height": 112,
+      "transparentPixels": 9760,
+      "paintedPixels": 2784,
+      "sha256": "c675c8b3171a4eec6c13099cf0ad500cee6c6ebf02b1ca5854c80ae74b9df07d"
+    },
+    {
+      "id": "html",
+      "file": "html.png",
+      "source": "src/Boardcast.Windows/FileItemIcon.cs",
+      "variant": "source",
+      "colors": [
+        "#E65100"
+      ],
+      "width": 112,
+      "height": 112,
+      "transparentPixels": 8056,
+      "paintedPixels": 4488,
+      "sha256": "b8cb314974547cd448c51d187df264db3b4d3a8cf891d0901d6fcf76e7ac6d52"
+    },
+    {
+      "id": "css",
+      "file": "css.png",
+      "source": "src/Boardcast.Windows/FileItemIcon.cs",
+      "variant": "source",
+      "colors": [
+        "#7E57C2"
+      ],
+      "width": 112,
+      "height": 112,
+      "transparentPixels": 7174,
+      "paintedPixels": 5370,
+      "sha256": "b8985ffd00884d7ab484a803189e7b3026c8a1cb5500efd208c8595088ecdea9"
+    },
+    {
+      "id": "git",
+      "file": "git.png",
+      "source": "src/Boardcast.Windows/FileItemIcon.cs",
+      "variant": "source",
+      "colors": [
+        "#E64A19"
+      ],
+      "width": 112,
+      "height": 112,
+      "transparentPixels": 7572,
+      "paintedPixels": 4972,
+      "sha256": "bf159d57c866c9dc55bfbf95023fe4cd7554c843912944ed0aaeffb7287b0715"
+    },
+    {
+      "id": "console",
+      "file": "console.png",
+      "source": "src/Boardcast.Windows/FileItemIcon.cs",
+      "variant": "source",
+      "colors": [
+        "#FF7043"
+      ],
+      "width": 112,
+      "height": 112,
+      "transparentPixels": 8123,
+      "paintedPixels": 4421,
+      "sha256": "66aba873e7f6a8d2bfa3aff7a57cdb52b3999361f533656b8e2abdfafc0cf1de"
+    },
+    {
+      "id": "database",
+      "file": "database.png",
+      "source": "src/Boardcast.Windows/FileItemIcon.cs",
+      "variant": "source",
+      "colors": [
+        "#FFCA28"
+      ],
+      "width": 112,
+      "height": 112,
+      "transparentPixels": 8656,
+      "paintedPixels": 3888,
+      "sha256": "06e1c1d5433234b77f6590a3ebeef6611bd57f5d6fbb7fb6458a424d7cd98b7f"
+    },
+    {
+      "id": "lock",
+      "file": "lock.png",
+      "source": "src/Boardcast.Windows/FileItemIcon.cs",
+      "variant": "source",
+      "colors": [
+        "#FFD54F"
+      ],
+      "width": 112,
+      "height": 112,
+      "transparentPixels": 7646,
+      "paintedPixels": 4898,
+      "sha256": "59929c67ed9aa4440d9c2d3d93a2515fc2ff46658ec362757b8658849591937f"
+    },
+    {
+      "id": "exe",
+      "file": "exe.png",
+      "source": "src/Boardcast.Windows/FileItemIcon.cs",
+      "variant": "source",
+      "colors": [
+        "#E64A19"
+      ],
+      "width": 112,
+      "height": 112,
+      "transparentPixels": 9040,
+      "paintedPixels": 3504,
+      "sha256": "b3d76c5101713b6d0eb9b7fa49e469a50ebc1c66e29b74ae0445f2dc261360e2"
+    },
+    {
+      "id": "font",
+      "file": "font.png",
+      "source": "src/Boardcast.Windows/FileItemIcon.cs",
+      "variant": "source",
+      "colors": [
+        "#F44336"
+      ],
+      "width": 112,
+      "height": 112,
+      "transparentPixels": 9626,
+      "paintedPixels": 2918,
+      "sha256": "95b79fee50407dbec827fc273e33e9cc3b00d41fc0bfc37cf8e0eec01540d58f"
+    },
+    {
+      "id": "platform-windows",
+      "file": "platform-windows.png",
+      "source": "src/Boardcast.Windows/MainWindow.xaml.cs:PeerView.PlatformIcon",
+      "variant": "source-neutral-muted",
+      "colors": [
+        "#626D7D"
+      ],
+      "width": 112,
+      "height": 112,
+      "transparentPixels": 3328,
+      "paintedPixels": 9216,
+      "sha256": "dd7f3bcd881d29f0bf5c0871cb04acc5506725e2a3ad18ebc0431ddb6f0862f0"
+    },
+    {
+      "id": "platform-macos",
+      "file": "platform-macos.png",
+      "source": "src/Boardcast.Windows/MainWindow.xaml.cs:PeerView.PlatformIcon",
+      "variant": "source-neutral-muted",
+      "colors": [
+        "#626D7D"
+      ],
+      "width": 112,
+      "height": 112,
+      "transparentPixels": 6650,
+      "paintedPixels": 5894,
+      "sha256": "9667807cff0678e94ef846169c28d18ed619b5054e941fe35d99ddc8858d0c62"
+    },
+    {
+      "id": "platform-unknown",
+      "file": "platform-unknown.png",
+      "source": "src/Boardcast.Windows/MainWindow.xaml.cs:PeerView.PlatformIcon",
+      "variant": "source-neutral-muted",
+      "colors": [
+        "#626D7D"
+      ],
+      "width": 112,
+      "height": 112,
+      "transparentPixels": 3520,
+      "paintedPixels": 9024,
+      "sha256": "4ba1ef826ac8c371f4d3857db2adde7bf9de54863c65a72160d44cd0fbff94f0"
+    }
+  ],
+  "verification": {
+    "classificationChecks": 173,
+    "all112IfDefault": true,
+    "allTransparent": true,
+    "allNonEmpty": true,
+    "fileGeometry": "Compiled from an unchanged source snapshot.",
+    "platformGeometry": "Extracted verbatim from PlatformIcon switch.",
+    "sourceColorsPreserved": "All 32 source icon fills retained; only documented Mac folder variant recolored."
+  }
+}

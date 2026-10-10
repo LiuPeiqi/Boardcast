@@ -1,13 +1,13 @@
 import Foundation
 
-enum PeerGroupFilter: String, Codable, CaseIterable {
+enum PeerGroupFilter: String, Codable, CaseIterable, Sendable {
     case all, sameGroup, selectedGroups
 
     var title: String {
         switch self {
-        case .all: return "全部设备"
-        case .sameGroup: return "与我同组"
-        case .selectedGroups: return "选择分组"
+        case .all: return L10n.string("全部设备")
+        case .sameGroup: return L10n.string("与我同组")
+        case .selectedGroups: return L10n.string("选择分组")
         }
     }
 }
@@ -78,17 +78,17 @@ enum DeviceGroups {
         return result.sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }
     }
 
-    static func label(_ group: String) -> String { group.isEmpty ? ungrouped : group }
+    static func label(_ group: String) -> String { group.isEmpty || group == ungrouped ? L10n.string(ungrouped) : group }
 
     static func validate(_ settings: AppSettings) throws {
         guard isValid(settings.groupName), settings.devices.allSatisfy({ isValid($0.groupName) }) else {
-            throw BoardcastError.invalid("分组名称最多 80 个字符，不能包含控制字符。")
+            throw BoardcastError.invalid(L10n.string("分组名称最多 80 个字符，不能包含控制字符。"))
         }
         guard settings.visibleGroups.count <= maximumVisibleGroups,
               settings.visibleGroups.allSatisfy({
                   isValid($0, maximum: maximumVisibleGroupNameLength) && !normalized($0).isEmpty
               }) else {
-            throw BoardcastError.invalid("最多选择 128 个分组，每个名称需要 1–256 个字符，不能包含控制字符。")
+            throw BoardcastError.invalid(L10n.string("最多选择 128 个分组，每个名称需要 1–256 个字符，不能包含控制字符。"))
         }
     }
 }

@@ -1,0 +1,1102 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+		9C6184ABA2ECC6F6E18A85A2 = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = AdaptiveFileRow.swift;
+			sourceTree = "<group>";
+		};
+		34181F2534F379412A8F9A84 = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = AppModel.swift;
+			sourceTree = "<group>";
+		};
+		EB8921B888DF6EC91671DBBE = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = BoardcastApp.swift;
+			sourceTree = "<group>";
+		};
+		9B219A28A98C0A30AD414915 = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = DeviceGroups.swift;
+			sourceTree = "<group>";
+		};
+		5ABAE514613FB559342A93B6 = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = FileIcons.swift;
+			sourceTree = "<group>";
+		};
+		7A7021164546DBEE3270204C = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = Identity.swift;
+			sourceTree = "<group>";
+		};
+		DB26EEA2ECEE91109BE5B33F = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = L10n.swift;
+			sourceTree = "<group>";
+		};
+		D1DE64455DB5A3694E1BF6B4 = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = LANDiscovery.swift;
+			sourceTree = "<group>";
+		};
+		5A640BCFBE11AB1F85A3D249 = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = Models.swift;
+			sourceTree = "<group>";
+		};
+		347EF28C735AF829467F685C = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = ReceivePolicy.swift;
+			sourceTree = "<group>";
+		};
+		A4A0B24A253B29FFD04FDF65 = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = ReceiveStorage.swift;
+			sourceTree = "<group>";
+		};
+		8FE03F48AE78C6207D9C3A51 = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = ResourceBundle.swift;
+			sourceTree = "<group>";
+		};
+		29891E308D70366B801F648F = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = SelectionScanner.swift;
+			sourceTree = "<group>";
+		};
+		4AE9A799B53CAB17CF6B8B5E = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = SendDraft.swift;
+			sourceTree = "<group>";
+		};
+		4C6BB02C7D8B0772FB394B5D = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = SettingsValidation.swift;
+			sourceTree = "<group>";
+		};
+		2229BDB1C4EA904867A2A541 = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = SettingsView.swift;
+			sourceTree = "<group>";
+		};
+		699859BE63E7C4DD44884E31 = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = TransferService.swift;
+			sourceTree = "<group>";
+		};
+		444C66755F61BDBD76BC2729 = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = TransferStore.swift;
+			sourceTree = "<group>";
+		};
+		9D5F5868FF872510CCA4BEF2 = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = WireConnection.swift;
+			sourceTree = "<group>";
+		};
+		0F7B7A2732F97668D84C868A = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = WorkbenchView.swift;
+			sourceTree = "<group>";
+		};
+		D298617A34C41CD1A02925D9 = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = DeviceGroupsTests.swift;
+			sourceTree = "<group>";
+		};
+		A7461075B2B179FCA9C85000 = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = DiscoveryTests.swift;
+			sourceTree = "<group>";
+		};
+		E7FE2677A906B4D210468E22 = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = FileIconsTests.swift;
+			sourceTree = "<group>";
+		};
+		FB1D9AF145931E4A0424213B = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = IdentityTests.swift;
+			sourceTree = "<group>";
+		};
+		DE81958E8A4AA89EAE1BFF91 = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = ReceivePolicyTests.swift;
+			sourceTree = "<group>";
+		};
+		9D775BF18A1FC88FA7A9E5FC = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = ReceiveStorageTests.swift;
+			sourceTree = "<group>";
+		};
+		2FCCF016429B8593CF0D5BD5 = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = SelectionScannerTests.swift;
+			sourceTree = "<group>";
+		};
+		E96ED4387F291B942F1A666F = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = SendDraftTests.swift;
+			sourceTree = "<group>";
+		};
+		347821C4405D8A2DDBCC05DD = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = SettingsStoreTests.swift;
+			sourceTree = "<group>";
+		};
+		CDF8B029EE50446112BB34C7 = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = TransferStoreTests.swift;
+			sourceTree = "<group>";
+		};
+		3B321D4C1A98E53F25157DEF = {
+			isa = PBXGroup;
+			children = (
+				9C6184ABA2ECC6F6E18A85A2,
+				34181F2534F379412A8F9A84,
+				EB8921B888DF6EC91671DBBE,
+				9B219A28A98C0A30AD414915,
+				5ABAE514613FB559342A93B6,
+				7A7021164546DBEE3270204C,
+				DB26EEA2ECEE91109BE5B33F,
+				D1DE64455DB5A3694E1BF6B4,
+				5A640BCFBE11AB1F85A3D249,
+				347EF28C735AF829467F685C,
+				A4A0B24A253B29FFD04FDF65,
+				8FE03F48AE78C6207D9C3A51,
+				29891E308D70366B801F648F,
+				4AE9A799B53CAB17CF6B8B5E,
+				4C6BB02C7D8B0772FB394B5D,
+				2229BDB1C4EA904867A2A541,
+				699859BE63E7C4DD44884E31,
+				444C66755F61BDBD76BC2729,
+				9D5F5868FF872510CCA4BEF2,
+				0F7B7A2732F97668D84C868A,
+				B2850FE463854D898B78A86E,
+				BF9D12B4E52F1D5AABF17FC3,
+				46153573891B324089716107,
+			);
+			sourceTree = "<group>";
+			path = Sources/Boardcast;
+			name = Boardcast;
+		};
+		C4DF94A42CA730B26E01C133 = {
+			isa = PBXGroup;
+			children = (
+				D298617A34C41CD1A02925D9,
+				A7461075B2B179FCA9C85000,
+				E7FE2677A906B4D210468E22,
+				FB1D9AF145931E4A0424213B,
+				DE81958E8A4AA89EAE1BFF91,
+				9D775BF18A1FC88FA7A9E5FC,
+				2FCCF016429B8593CF0D5BD5,
+				E96ED4387F291B942F1A666F,
+				347821C4405D8A2DDBCC05DD,
+				CDF8B029EE50446112BB34C7,
+				F581FAE79775FE2B9EEAF52D,
+				6514B9C85E1E1FF109A6FC36,
+				1957FB882098E49873EDDCE4,
+			);
+			sourceTree = "<group>";
+			path = Tests/BoardcastTests;
+			name = BoardcastTests;
+		};
+		8BF729FFE074CAEE622C0292 = {
+			isa = PBXFileReference;
+			lastKnownFileType = folder.assetcatalog;
+			path = Assets.xcassets;
+			sourceTree = "<group>";
+		};
+		6ABB49459ADF66ED4699645E = {
+			isa = PBXFileReference;
+			lastKnownFileType = text.plist.strings;
+			name = en;
+			path = en.lproj/InfoPlist.strings;
+			sourceTree = "<group>";
+		};
+		3E854242C22B5A3959C2E7F8 = {
+			isa = PBXFileReference;
+			lastKnownFileType = text.plist.strings;
+			name = "zh-Hans";
+			path = "zh-Hans.lproj/InfoPlist.strings";
+			sourceTree = "<group>";
+		};
+		37AAC9652FDD215FA6D69464 = {
+			isa = PBXVariantGroup;
+			children = (
+				6ABB49459ADF66ED4699645E,
+				3E854242C22B5A3959C2E7F8,
+			);
+			name = InfoPlist.strings;
+			sourceTree = "<group>";
+		};
+		C5E55183ECB076EB335DF6EE = {
+			isa = PBXGroup;
+			children = (
+				8BF729FFE074CAEE622C0292,
+				37AAC9652FDD215FA6D69464,
+			);
+			sourceTree = "<group>";
+			path = Resources;
+		};
+		3A2BB20CB63A0B78A491DABC = {
+			isa = PBXFileReference;
+			lastKnownFileType = text.xcconfig;
+			path = Base.xcconfig;
+			sourceTree = "<group>";
+		};
+		1F14D62AEF4518CE7AC9123C = {
+			isa = PBXFileReference;
+			lastKnownFileType = text.xcconfig;
+			path = Debug.xcconfig;
+			sourceTree = "<group>";
+		};
+		57921FA43AD736EA8673ED95 = {
+			isa = PBXFileReference;
+			lastKnownFileType = text.xcconfig;
+			path = Release.xcconfig;
+			sourceTree = "<group>";
+		};
+		679F4E5B46EF53E000AB57E7 = {
+			isa = PBXGroup;
+			children = (
+				3A2BB20CB63A0B78A491DABC,
+				1F14D62AEF4518CE7AC9123C,
+				57921FA43AD736EA8673ED95,
+			);
+			sourceTree = "<group>";
+			path = Config;
+		};
+		53A9F2608AFE9BDB1874D854 = {
+			isa = PBXFileReference;
+			lastKnownFileType = text.script.sh;
+			path = common.sh;
+			sourceTree = "<group>";
+		};
+		A98D9889D318FA4083F94201 = {
+			isa = PBXFileReference;
+			lastKnownFileType = text.script.sh;
+			path = preflight.sh;
+			sourceTree = "<group>";
+		};
+		0532AB08A34434F5639DC13A = {
+			isa = PBXFileReference;
+			lastKnownFileType = text.script.sh;
+			path = build.sh;
+			sourceTree = "<group>";
+		};
+		7CB456FFAE98BB3DB9E30A11 = {
+			isa = PBXFileReference;
+			lastKnownFileType = text.script.sh;
+			path = release.sh;
+			sourceTree = "<group>";
+		};
+		75C2F4B85AB94F801171C0D7 = {
+			isa = PBXFileReference;
+			lastKnownFileType = text.script.python;
+			path = validate_project.py;
+			sourceTree = "<group>";
+		};
+		392B223436F22213640FEBEA = {
+			isa = PBXGroup;
+			children = (
+				53A9F2608AFE9BDB1874D854,
+				A98D9889D318FA4083F94201,
+				0532AB08A34434F5639DC13A,
+				7CB456FFAE98BB3DB9E30A11,
+				75C2F4B85AB94F801171C0D7,
+				7711D504B3400BBE0DD13E69,
+			);
+			sourceTree = "<group>";
+			path = scripts;
+		};
+		681C948D238C526E9E3424E0 = {
+			isa = PBXFileReference;
+			explicitFileType = wrapper.application;
+			includeInIndex = 0;
+			path = Boardcast.app;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		F739566ED5280322FF98A798 = {
+			isa = PBXFileReference;
+			explicitFileType = wrapper.cfbundle;
+			includeInIndex = 0;
+			path = BoardcastTests.xctest;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		0A3E27B8CA818264D75C8D81 = {
+			isa = PBXGroup;
+			children = (
+				681C948D238C526E9E3424E0,
+				F739566ED5280322FF98A798,
+				D7B61112ADFD2D44AA9EEB60,
+			);
+			sourceTree = "<group>";
+			name = Products;
+		};
+		281CB8AC752E585AC9E88AB2 = {
+			isa = PBXFileReference;
+			lastKnownFileType = text.plist.xml;
+			path = Info.plist;
+			sourceTree = "<group>";
+		};
+		2619E9CF8470C8F780375259 = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = Package.swift;
+			sourceTree = "<group>";
+		};
+		711A6108BA2CE6CA93DD47D6 = {
+			isa = PBXFileReference;
+			lastKnownFileType = net.daringfireball.markdown;
+			path = README.md;
+			sourceTree = "<group>";
+		};
+		875B9380866E9D56E7110B0E = {
+			isa = PBXFileReference;
+			lastKnownFileType = net.daringfireball.markdown;
+			path = DEVELOPMENT.md;
+			sourceTree = "<group>";
+		};
+		19F479106CE8C3BA8C106518 = {
+			isa = PBXGroup;
+			children = (
+				3B321D4C1A98E53F25157DEF,
+				C4DF94A42CA730B26E01C133,
+				C5E55183ECB076EB335DF6EE,
+				679F4E5B46EF53E000AB57E7,
+				281CB8AC752E585AC9E88AB2,
+				2619E9CF8470C8F780375259,
+				711A6108BA2CE6CA93DD47D6,
+				875B9380866E9D56E7110B0E,
+				392B223436F22213640FEBEA,
+				0A3E27B8CA818264D75C8D81,
+				423302F910053F33F7A242B9,
+				81FF86DF0E9E39F66336E3C2,
+			);
+			sourceTree = "<group>";
+		};
+		AC72C6613B5256F2C1728BD3 = {
+			isa = PBXBuildFile;
+			fileRef = 9C6184ABA2ECC6F6E18A85A2;
+		};
+		D29FEF1274680B948D9E8662 = {
+			isa = PBXBuildFile;
+			fileRef = 34181F2534F379412A8F9A84;
+		};
+		7ADEA670B550463512D1EF17 = {
+			isa = PBXBuildFile;
+			fileRef = EB8921B888DF6EC91671DBBE;
+		};
+		838C9CB0BB4B216483C4EC7A = {
+			isa = PBXBuildFile;
+			fileRef = 9B219A28A98C0A30AD414915;
+		};
+		D5D73C98B8C998D39810342A = {
+			isa = PBXBuildFile;
+			fileRef = 5ABAE514613FB559342A93B6;
+		};
+		1D94426CCB876C395B4C51C3 = {
+			isa = PBXBuildFile;
+			fileRef = 7A7021164546DBEE3270204C;
+		};
+		DA07BE76EA76EC56FD15C14E = {
+			isa = PBXBuildFile;
+			fileRef = DB26EEA2ECEE91109BE5B33F;
+		};
+		74A15432E6302DD9169D07EB = {
+			isa = PBXBuildFile;
+			fileRef = D1DE64455DB5A3694E1BF6B4;
+		};
+		D7939FDC7E160C3BEC2C85D2 = {
+			isa = PBXBuildFile;
+			fileRef = 5A640BCFBE11AB1F85A3D249;
+		};
+		CDE888CB082418E1F6DC01F1 = {
+			isa = PBXBuildFile;
+			fileRef = 347EF28C735AF829467F685C;
+		};
+		D50E97760DB0902124B84D5F = {
+			isa = PBXBuildFile;
+			fileRef = A4A0B24A253B29FFD04FDF65;
+		};
+		DEA6DEC7DCF500F72D2BCE74 = {
+			isa = PBXBuildFile;
+			fileRef = 8FE03F48AE78C6207D9C3A51;
+		};
+		94DF969E8AF324101AF894F1 = {
+			isa = PBXBuildFile;
+			fileRef = 29891E308D70366B801F648F;
+		};
+		F0A3B57CB0914ED094CCAECE = {
+			isa = PBXBuildFile;
+			fileRef = 4AE9A799B53CAB17CF6B8B5E;
+		};
+		4C2FCAAFC0B34933B798475B = {
+			isa = PBXBuildFile;
+			fileRef = 4C6BB02C7D8B0772FB394B5D;
+		};
+		6A4E4EAD4F3EC5F06E95D9F5 = {
+			isa = PBXBuildFile;
+			fileRef = 2229BDB1C4EA904867A2A541;
+		};
+		CCE668201653701365727ADF = {
+			isa = PBXBuildFile;
+			fileRef = 699859BE63E7C4DD44884E31;
+		};
+		24832F1BC5EE38F98CDF0AF7 = {
+			isa = PBXBuildFile;
+			fileRef = 444C66755F61BDBD76BC2729;
+		};
+		768350C9CF559DDA6EF90749 = {
+			isa = PBXBuildFile;
+			fileRef = 9D5F5868FF872510CCA4BEF2;
+		};
+		EA3980CB3872DFED74D06C4D = {
+			isa = PBXBuildFile;
+			fileRef = 0F7B7A2732F97668D84C868A;
+		};
+		40E6A248B214A7CE3E5C817C = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AC72C6613B5256F2C1728BD3,
+				D29FEF1274680B948D9E8662,
+				7ADEA670B550463512D1EF17,
+				838C9CB0BB4B216483C4EC7A,
+				D5D73C98B8C998D39810342A,
+				1D94426CCB876C395B4C51C3,
+				DA07BE76EA76EC56FD15C14E,
+				74A15432E6302DD9169D07EB,
+				D7939FDC7E160C3BEC2C85D2,
+				CDE888CB082418E1F6DC01F1,
+				D50E97760DB0902124B84D5F,
+				DEA6DEC7DCF500F72D2BCE74,
+				94DF969E8AF324101AF894F1,
+				F0A3B57CB0914ED094CCAECE,
+				4C2FCAAFC0B34933B798475B,
+				6A4E4EAD4F3EC5F06E95D9F5,
+				CCE668201653701365727ADF,
+				24832F1BC5EE38F98CDF0AF7,
+				768350C9CF559DDA6EF90749,
+				EA3980CB3872DFED74D06C4D,
+				FDD72F4E77B4F4056C4676D7,
+				FA313A7417F1FB27E69E9F8D,
+				0E27ABF14C01C49E31742463,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		26FCC8822E51EFADEA5A9D4A = {
+			isa = PBXBuildFile;
+			fileRef = D298617A34C41CD1A02925D9;
+		};
+		407274C42FC74037D864D913 = {
+			isa = PBXBuildFile;
+			fileRef = A7461075B2B179FCA9C85000;
+		};
+		1040FF56DF635206C36D069D = {
+			isa = PBXBuildFile;
+			fileRef = E7FE2677A906B4D210468E22;
+		};
+		1A03500934E61F4E876CA30A = {
+			isa = PBXBuildFile;
+			fileRef = FB1D9AF145931E4A0424213B;
+		};
+		EA4AFC5D5E29BA8667A7965F = {
+			isa = PBXBuildFile;
+			fileRef = DE81958E8A4AA89EAE1BFF91;
+		};
+		EB5413951C1E639507A7C05A = {
+			isa = PBXBuildFile;
+			fileRef = 9D775BF18A1FC88FA7A9E5FC;
+		};
+		70EF044899F68507162CFECE = {
+			isa = PBXBuildFile;
+			fileRef = 2FCCF016429B8593CF0D5BD5;
+		};
+		90E5766DF556E5991E29C69A = {
+			isa = PBXBuildFile;
+			fileRef = E96ED4387F291B942F1A666F;
+		};
+		395294F3BBA2546F8B473099 = {
+			isa = PBXBuildFile;
+			fileRef = 347821C4405D8A2DDBCC05DD;
+		};
+		6323707A1F5893A23EE32E7A = {
+			isa = PBXBuildFile;
+			fileRef = CDF8B029EE50446112BB34C7;
+		};
+		CEE1FAB3F779B0AE832EC645 = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				26FCC8822E51EFADEA5A9D4A,
+				407274C42FC74037D864D913,
+				1040FF56DF635206C36D069D,
+				1A03500934E61F4E876CA30A,
+				EA4AFC5D5E29BA8667A7965F,
+				EB5413951C1E639507A7C05A,
+				70EF044899F68507162CFECE,
+				90E5766DF556E5991E29C69A,
+				395294F3BBA2546F8B473099,
+				6323707A1F5893A23EE32E7A,
+				7244A3F41DA44360798A3843,
+				1605B18293EEE8B80FA8C2D0,
+				028ECE09D3874CA87C4251AC,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		5522B3B3B2EACC1C8F9BEAAC = {
+			isa = PBXBuildFile;
+			fileRef = 8BF729FFE074CAEE622C0292;
+		};
+		F348F411A964DCEDED8A9A4B = {
+			isa = PBXBuildFile;
+			fileRef = 37AAC9652FDD215FA6D69464;
+		};
+		7FE69874982809190109E0AE = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5B890344985B02991C89FA68,
+				DA6C31F5FB1643620538EE8D,
+				ED072C9F734E1967F0D64BE0,
+				320D827CC321FEF231607C2B,
+				5522B3B3B2EACC1C8F9BEAAC,
+				F348F411A964DCEDED8A9A4B,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		BAC3A9ADC59A6FEC3FDBBA36 = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		38F5180EB4FB156F546CCDA6 = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B568C22B0C9C982EDB2771D6 = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		5DF0EAF287A59303D4EFEAF3 = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 1F14D62AEF4518CE7AC9123C;
+			buildSettings = {
+			};
+			name = Debug;
+		};
+		9E65EC417FB08814EDA78D03 = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				PRODUCT_NAME = Boardcast;
+				PRODUCT_MODULE_NAME = Boardcast;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(BOARDCAST_BUNDLE_IDENTIFIER)";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Info.plist;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_DEBUG_DYLIB = NO;
+				SKIP_INSTALL = NO;
+				INSTALL_PATH = "$(LOCAL_APPS_DIR)";
+			};
+			name = Debug;
+		};
+		BDCB6685590013FAD092C635 = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_BUNDLE_IDENTIFIER = "$(BOARDCAST_BUNDLE_IDENTIFIER).tests";
+				GENERATE_INFOPLIST_FILE = YES;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Boardcast.app/Contents/MacOS/Boardcast";
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				ENABLE_HARDENED_RUNTIME = NO;
+				SKIP_INSTALL = YES;
+			};
+			name = Debug;
+		};
+		C62D9534737287C44FD6EF43 = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 57921FA43AD736EA8673ED95;
+			buildSettings = {
+			};
+			name = Release;
+		};
+		E1B306C75B8C1F7525F5E621 = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				PRODUCT_NAME = Boardcast;
+				PRODUCT_MODULE_NAME = Boardcast;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(BOARDCAST_BUNDLE_IDENTIFIER)";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Info.plist;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_DEBUG_DYLIB = NO;
+				SKIP_INSTALL = NO;
+				INSTALL_PATH = "$(LOCAL_APPS_DIR)";
+			};
+			name = Release;
+		};
+		D0C5E4E5ADA2A5DD008785AF = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_BUNDLE_IDENTIFIER = "$(BOARDCAST_BUNDLE_IDENTIFIER).tests";
+				GENERATE_INFOPLIST_FILE = YES;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Boardcast.app/Contents/MacOS/Boardcast";
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				ENABLE_HARDENED_RUNTIME = NO;
+				SKIP_INSTALL = YES;
+			};
+			name = Release;
+		};
+		8533BDEA17DCB03B13524C66 = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				5DF0EAF287A59303D4EFEAF3,
+				C62D9534737287C44FD6EF43,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		B39C8EF3FAB3F378DE6878A9 = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				9E65EC417FB08814EDA78D03,
+				E1B306C75B8C1F7525F5E621,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		BC420C2446C215E7733CDA9E = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				BDCB6685590013FAD092C635,
+				D0C5E4E5ADA2A5DD008785AF,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		C1E9827DB735CA9BAA54A540 = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B39C8EF3FAB3F378DE6878A9;
+			buildPhases = (
+				40E6A248B214A7CE3E5C817C,
+				BAC3A9ADC59A6FEC3FDBBA36,
+				7FE69874982809190109E0AE,
+				5F265DBC99BC5C017520BB16,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				0268A8848EF9C348D41DAE02,
+			);
+			name = Boardcast;
+			productName = Boardcast;
+			productReference = 681C948D238C526E9E3424E0;
+			productType = "com.apple.product-type.application";
+		};
+		DAB01D73CBBCF1FEDE84E2D6 = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 244210E48437B6556980A702;
+			proxyType = 1;
+			remoteGlobalIDString = C1E9827DB735CA9BAA54A540;
+			remoteInfo = Boardcast;
+		};
+		F9A94CEF8CF7D85CE881E703 = {
+			isa = PBXTargetDependency;
+			target = C1E9827DB735CA9BAA54A540;
+			targetProxy = DAB01D73CBBCF1FEDE84E2D6;
+		};
+		9805CBD60EB4F66728D5D195 = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = BC420C2446C215E7733CDA9E;
+			buildPhases = (
+				CEE1FAB3F779B0AE832EC645,
+				38F5180EB4FB156F546CCDA6,
+				B568C22B0C9C982EDB2771D6,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				F9A94CEF8CF7D85CE881E703,
+			);
+			name = BoardcastTests;
+			productName = BoardcastTests;
+			productReference = F739566ED5280322FF98A798;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		244210E48437B6556980A702 = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1600;
+				TargetAttributes = {
+					C1E9827DB735CA9BAA54A540 = {
+						CreatedOnToolsVersion = 16.0;
+					};
+					9805CBD60EB4F66728D5D195 = {
+						CreatedOnToolsVersion = 16.0;
+						TestTargetID = C1E9827DB735CA9BAA54A540;
+					};
+					BF5585DB99B3652823128692 = {
+						CreatedOnToolsVersion = 16.0;
+					};
+				};
+			};
+			buildConfigurationList = 8533BDEA17DCB03B13524C66;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+				"zh-Hans",
+			);
+			mainGroup = 19F479106CE8C3BA8C106518;
+			productRefGroup = 0A3E27B8CA818264D75C8D81;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				C1E9827DB735CA9BAA54A540,
+				9805CBD60EB4F66728D5D195,
+				BF5585DB99B3652823128692,
+			);
+		};
+		F581FAE79775FE2B9EEAF52D = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = WireConnectionTests.swift;
+			sourceTree = "<group>";
+		};
+		7244A3F41DA44360798A3843 = {
+			isa = PBXBuildFile;
+			fileRef = F581FAE79775FE2B9EEAF52D;
+		};
+		7DB70DBAB5DFD915A3EF7983 = {
+			isa = PBXFileReference;
+			lastKnownFileType = folder;
+			path = Icons;
+			sourceTree = "<group>";
+		};
+		5B890344985B02991C89FA68 = {
+			isa = PBXBuildFile;
+			fileRef = 7DB70DBAB5DFD915A3EF7983;
+		};
+		D164738E8916F8C6B158FD46 = {
+			isa = PBXFileReference;
+			lastKnownFileType = folder;
+			path = ThirdParty;
+			sourceTree = "<group>";
+		};
+		DA6C31F5FB1643620538EE8D = {
+			isa = PBXBuildFile;
+			fileRef = D164738E8916F8C6B158FD46;
+		};
+		74686F59DB394A9BF340A5E2 = {
+			isa = PBXFileReference;
+			lastKnownFileType = text.plist.strings;
+			name = en;
+			path = en.lproj/Localizable.strings;
+			sourceTree = "<group>";
+		};
+		602CD8A6EDD893F9072DE41D = {
+			isa = PBXFileReference;
+			lastKnownFileType = text.plist.strings;
+			name = "zh-Hans";
+			path = "zh-Hans.lproj/Localizable.strings";
+			sourceTree = "<group>";
+		};
+		D9EE98D0F71336331414268A = {
+			isa = PBXVariantGroup;
+			children = (
+				74686F59DB394A9BF340A5E2,
+				602CD8A6EDD893F9072DE41D,
+			);
+			name = Localizable.strings;
+			sourceTree = "<group>";
+		};
+		ED072C9F734E1967F0D64BE0 = {
+			isa = PBXBuildFile;
+			fileRef = D9EE98D0F71336331414268A;
+		};
+		043F1A9B8E6F9149A6140012 = {
+			isa = PBXFileReference;
+			lastKnownFileType = text.plist.xml;
+			name = en;
+			path = en.lproj/Localizable.stringsdict;
+			sourceTree = "<group>";
+		};
+		C63847D0CB40C036285F75BE = {
+			isa = PBXFileReference;
+			lastKnownFileType = text.plist.xml;
+			name = "zh-Hans";
+			path = "zh-Hans.lproj/Localizable.stringsdict";
+			sourceTree = "<group>";
+		};
+		D32C54657C730BA1D4D781C2 = {
+			isa = PBXVariantGroup;
+			children = (
+				043F1A9B8E6F9149A6140012,
+				C63847D0CB40C036285F75BE,
+			);
+			name = Localizable.stringsdict;
+			sourceTree = "<group>";
+		};
+		320D827CC321FEF231607C2B = {
+			isa = PBXBuildFile;
+			fileRef = D32C54657C730BA1D4D781C2;
+		};
+		B2850FE463854D898B78A86E = {
+			isa = PBXGroup;
+			children = (
+				7DB70DBAB5DFD915A3EF7983,
+				D164738E8916F8C6B158FD46,
+				D9EE98D0F71336331414268A,
+				D32C54657C730BA1D4D781C2,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		BF9D12B4E52F1D5AABF17FC3 = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = MacUpdateService.swift;
+			sourceTree = "<group>";
+		};
+		FDD72F4E77B4F4056C4676D7 = {
+			isa = PBXBuildFile;
+			fileRef = BF9D12B4E52F1D5AABF17FC3;
+		};
+		46153573891B324089716107 = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = MacUpdatesView.swift;
+			sourceTree = "<group>";
+		};
+		FA313A7417F1FB27E69E9F8D = {
+			isa = PBXBuildFile;
+			fileRef = 46153573891B324089716107;
+		};
+		6514B9C85E1E1FF109A6FC36 = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = MacReleaseTests.swift;
+			sourceTree = "<group>";
+		};
+		1605B18293EEE8B80FA8C2D0 = {
+			isa = PBXBuildFile;
+			fileRef = 6514B9C85E1E1FF109A6FC36;
+		};
+		1957FB882098E49873EDDCE4 = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = MacUpdateServiceTests.swift;
+			sourceTree = "<group>";
+		};
+		028ECE09D3874CA87C4251AC = {
+			isa = PBXBuildFile;
+			fileRef = 1957FB882098E49873EDDCE4;
+		};
+		D710D78BEA44732868D01FF0 = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = MacRelease.swift;
+			sourceTree = "<group>";
+		};
+		423302F910053F33F7A242B9 = {
+			isa = PBXGroup;
+			children = (
+				D710D78BEA44732868D01FF0,
+			);
+			path = Sources/Shared;
+			name = Shared;
+			sourceTree = "<group>";
+		};
+		208EA68946E6B5772A19D666 = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = main.swift;
+			sourceTree = "<group>";
+		};
+		81FF86DF0E9E39F66336E3C2 = {
+			isa = PBXGroup;
+			children = (
+				208EA68946E6B5772A19D666,
+			);
+			path = Sources/BoardcastUpdater;
+			name = BoardcastUpdater;
+			sourceTree = "<group>";
+		};
+		0E27ABF14C01C49E31742463 = {
+			isa = PBXBuildFile;
+			fileRef = D710D78BEA44732868D01FF0;
+		};
+		C80095708159EA287B83ECFD = {
+			isa = PBXBuildFile;
+			fileRef = 208EA68946E6B5772A19D666;
+		};
+		16A28AEB422F959F33AA330B = {
+			isa = PBXBuildFile;
+			fileRef = D710D78BEA44732868D01FF0;
+		};
+		71397BDCF7D40DD19351A9B9 = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C80095708159EA287B83ECFD,
+				16A28AEB422F959F33AA330B,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		24CF685C8212F2B05C66EB68 = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D7B61112ADFD2D44AA9EEB60 = {
+			isa = PBXFileReference;
+			explicitFileType = "compiled.mach-o.executable";
+			includeInIndex = 0;
+			path = BoardcastUpdater;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		1E4EF11E48CD7CD0C9790564 = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				PRODUCT_NAME = BoardcastUpdater;
+				PRODUCT_MODULE_NAME = BoardcastUpdater;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(BOARDCAST_BUNDLE_IDENTIFIER).updater";
+				GENERATE_INFOPLIST_FILE = NO;
+				SKIP_INSTALL = YES;
+				OTHER_CODE_SIGN_FLAGS = "$(inherited) --identifier $(PRODUCT_BUNDLE_IDENTIFIER)";
+			};
+			name = Debug;
+		};
+		5C7AADBC1AC86484031D0BA5 = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				PRODUCT_NAME = BoardcastUpdater;
+				PRODUCT_MODULE_NAME = BoardcastUpdater;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(BOARDCAST_BUNDLE_IDENTIFIER).updater";
+				GENERATE_INFOPLIST_FILE = NO;
+				SKIP_INSTALL = YES;
+				OTHER_CODE_SIGN_FLAGS = "$(inherited) --identifier $(PRODUCT_BUNDLE_IDENTIFIER)";
+			};
+			name = Release;
+		};
+		41EFD12A098E1E87C467B88D = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1E4EF11E48CD7CD0C9790564,
+				5C7AADBC1AC86484031D0BA5,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		BF5585DB99B3652823128692 = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 41EFD12A098E1E87C467B88D;
+			buildPhases = (
+				71397BDCF7D40DD19351A9B9,
+				24CF685C8212F2B05C66EB68,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = BoardcastUpdater;
+			productName = BoardcastUpdater;
+			productReference = D7B61112ADFD2D44AA9EEB60;
+			productType = "com.apple.product-type.tool";
+		};
+		803932F7A97FAA234D9EF5B9 = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 244210E48437B6556980A702;
+			proxyType = 1;
+			remoteGlobalIDString = BF5585DB99B3652823128692;
+			remoteInfo = BoardcastUpdater;
+		};
+		0268A8848EF9C348D41DAE02 = {
+			isa = PBXTargetDependency;
+			target = BF5585DB99B3652823128692;
+			targetProxy = 803932F7A97FAA234D9EF5B9;
+		};
+		FE9142E199C95C7B020F14CA = {
+			isa = PBXBuildFile;
+			fileRef = D7B61112ADFD2D44AA9EEB60;
+			settings = {
+				ATTRIBUTES = (
+					CodeSignOnCopy,
+					RemoveHeaders,
+				);
+			};
+		};
+		5F265DBC99BC5C017520BB16 = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 6;
+			files = (
+				FE9142E199C95C7B020F14CA,
+			);
+			name = "Embed BoardcastUpdater";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		7711D504B3400BBE0DD13E69 = {
+			isa = PBXFileReference;
+			lastKnownFileType = text.script.sh;
+			path = publish.sh;
+			sourceTree = "<group>";
+		};
+	};
+	rootObject = 244210E48437B6556980A702;
+}

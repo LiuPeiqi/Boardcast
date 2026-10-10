@@ -1,6 +1,6 @@
 import Foundation
 
-struct AppSettings: Codable {
+struct AppSettings: Codable, Sendable, Equatable {
     var version = 1
     var deviceName = Host.current().localizedName ?? "Mac"
     var groupName = ""
@@ -15,7 +15,7 @@ struct AppSettings: Codable {
     var rules: [ReceiveRule] = []
 }
 
-struct KnownDevice: Codable, Identifiable {
+struct KnownDevice: Codable, Identifiable, Sendable, Equatable {
     var fingerprint: String
     var name: String
     var alias = ""
@@ -28,7 +28,7 @@ struct KnownDevice: Codable, Identifiable {
     var displayName: String { alias.trimmingCharacters(in: .whitespaces).isEmpty ? name : alias }
 }
 
-struct PeerInfo: Codable, Identifiable {
+struct PeerInfo: Codable, Identifiable, Sendable {
     var fingerprint: String
     var name: String
     var groupName = ""
@@ -36,6 +36,12 @@ struct PeerInfo: Codable, Identifiable {
     var address = ""
     var port = 45831
     var receivingEnabled = true
+    var lanOnline = true
+    var appVersion: String? = nil
+    var runtime: String? = nil
+    var updatePort = 0
+    var updateVersion: String? = nil
+    var departureHint = false
     var id: String { fingerprint }
 }
 
@@ -83,7 +89,7 @@ extension KnownDevice {
 
 extension PeerInfo {
     private enum CodingKeys: String, CodingKey {
-        case fingerprint, name, groupName, platform, address, port, receivingEnabled
+        case fingerprint, name, groupName, platform, address, port, receivingEnabled, lanOnline, appVersion, runtime, updatePort, updateVersion, departureHint
     }
     init(from decoder: Decoder) throws {
         let values = try decoder.container(keyedBy: CodingKeys.self)
@@ -94,28 +100,42 @@ extension PeerInfo {
         address = try values.decodeIfPresent(String.self, forKey: .address) ?? ""
         port = try values.decodeIfPresent(Int.self, forKey: .port) ?? port
         receivingEnabled = try values.decodeIfPresent(Bool.self, forKey: .receivingEnabled) ?? true
+        lanOnline = try values.decodeIfPresent(Bool.self, forKey: .lanOnline) ?? true
+        appVersion = try values.decodeIfPresent(String.self, forKey: .appVersion)
+        runtime = try values.decodeIfPresent(String.self, forKey: .runtime)
+        updatePort = try values.decodeIfPresent(Int.self, forKey: .updatePort) ?? 0
+        updateVersion = try values.decodeIfPresent(String.self, forKey: .updateVersion)
+        departureHint = try values.decodeIfPresent(Bool.self, forKey: .departureHint) ?? false
     }
 }
 
-struct TransferEntry: Codable {
+struct TransferEntry: Codable, Sendable {
     var relativePath: String
     var size: Int64
     var isDirectory: Bool
 }
 
-struct TransferOffer: Codable, Identifiable {
+struct TransferOffer: Codable, Identifiable, Sendable {
     var id = UUID().uuidString.replacingOccurrences(of: "-", with: "").lowercased()
     var senderName: String
     var senderFingerprint: String
     var summary = ""
     var entries: [TransferEntry]
-    var totalBytes: Int64 { entries.reduce(0) { $0 + $1.size } }
+    var totalBytes: Int64 {
+        var total: Int64 = 0
+        for entry in entries {
+            let sum = total.addingReportingOverflow(entry.size)
+            if sum.overflow || entry.size < 0 { return Int64.max }
+            total = sum.partialValue
+        }
+        return total
+    }
 }
 
-enum EntryScope: String, Codable, CaseIterable { case any, files, folders }
-struct ReceiveRule: Codable, Identifiable {
+enum EntryScope: String, Codable, CaseIterable, Sendable { case any, files, folders }
+struct ReceiveRule: Codable, Identifiable, Sendable, Equatable {
     var id = UUID().uuidString
-    var name = "新规则"
+    var name = L10n.string("新规则")
     var enabled = true
     var deviceFingerprint = ""
     var scope: EntryScope = .any
@@ -125,16 +145,17 @@ struct ReceiveRule: Codable, Identifiable {
     var destination = ""
     var autoAccept = false
 }
-struct ReceiveDecision {
+struct ReceiveDecision: Sendable {
     var autoAccept: Bool
     var destination: String
     var reason: String
 }
-struct PendingOffer: Identifiable {
+struct PendingOffer: Identifiable, Sendable {
     let offer: TransferOffer
     let fingerprint: String
     let decision: ReceiveDecision
-    var id: String { offer.id }
+    let expiresAt = Date().addingTimeInterval(120)
+    var id: String { "receive-" + fingerprint + "-" + offer.id }
 }
 enum BoardcastError: LocalizedError {
     case invalid(String)
@@ -145,22 +166,38 @@ enum BoardcastError: LocalizedError {
 
 final class SettingsStore {
     private let file: URL
-    init() throws {
-        let directory = try FileManager.default.url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true).appendingPathComponent("Boardcast", isDirectory: true)
+    let directory: URL
+    init(directory customDirectory: URL? = nil) throws {
+        directory = try customDirectory ?? FileManager.default.url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true).appendingPathComponent("Boardcast", isDirectory: true)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
         file = directory.appendingPathComponent("settings.json")
     }
     func load() throws -> AppSettings {
         guard FileManager.default.fileExists(atPath: file.path) else { return AppSettings() }
         let settings = try JSONDecoder().decode(AppSettings.self, from: Data(contentsOf: file))
-        try DeviceGroups.validate(settings)
+        try SettingsValidation.validate(settings)
         return settings
     }
     func save(_ settings: AppSettings) throws {
-        try DeviceGroups.validate(settings)
+        try SettingsValidation.validate(settings)
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         try encoder.encode(settings).write(to: file, options: [.atomic])
         try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: file.path)
+    }
+}
+
+
+extension TransferOffer {
+    private enum CodingKeys: String, CodingKey {
+        case id, senderName, senderFingerprint, summary, entries
+    }
+    init(from decoder: Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        self.init(id: try values.decode(String.self, forKey: .id),
+                  senderName: try values.decode(String.self, forKey: .senderName),
+                  senderFingerprint: try values.decode(String.self, forKey: .senderFingerprint),
+                  summary: try values.decodeIfPresent(String.self, forKey: .summary) ?? "",
+                  entries: try values.decode([TransferEntry].self, forKey: .entries))
     }
 }

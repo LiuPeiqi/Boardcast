@@ -14,6 +14,7 @@ final class ReceivePolicyTests: XCTestCase {
         settings.rules = [ReceiveRule(name: "Images", extensions: ["jpg"], autoAccept: true)]
         return settings
     }
+
     func testTrustRequiresDeviceAndRuleConsent() throws {
         var settings = automaticSettings()
         XCTAssertTrue(try ReceivePolicy.evaluate(settings: settings, offer: offer(), fingerprint: fingerprint).autoAccept)
@@ -23,36 +24,54 @@ final class ReceivePolicyTests: XCTestCase {
         settings.devices[0].autoAccept = false
         XCTAssertFalse(try ReceivePolicy.evaluate(settings: settings, offer: offer(), fingerprint: fingerprint).autoAccept)
     }
+
     func testCertificateIdentityCannotBeSpoofedByJSON() {
         XCTAssertThrowsError(try ReceivePolicy.evaluate(settings: automaticSettings(), offer: offer(), fingerprint: String(repeating: "00", count: 32)))
     }
+
     func testAllFilesMustMatchRule() throws {
         XCTAssertFalse(try ReceivePolicy.evaluate(settings: automaticSettings(), offer: offer(["photo.jpg", "payload.exe"]), fingerprint: fingerprint).autoAccept)
     }
+
     func testFirstMatchingRuleWins() throws {
         var settings = automaticSettings()
         settings.rules.insert(ReceiveRule(name: "Ask", autoAccept: false), at: 0)
         XCTAssertFalse(try ReceivePolicy.evaluate(settings: settings, offer: offer(), fingerprint: fingerprint).autoAccept)
     }
+
     func testPathTraversalAndReservedNamesRejected() {
         for path in ["../secret", "/etc/passwd", "x/../../secret", "C:/Users/a", "safe/CON.txt", "a//b", "x/.", "x\\..\\y", "file."] {
             XCTAssertThrowsError(try ReceivePolicy.relativePath(path), path)
         }
     }
+
+    func testFilesystemRootCanContainASafeRelativePath() throws {
+        let name = "boardcast-" + UUID().uuidString
+        let destination = try ReceivePolicy.safeDestination(root: URL(fileURLWithPath: "/", isDirectory: true), relative: name)
+        XCTAssertEqual(destination.path, "/" + name)
+    }
+
     func testUnicodeAndCaseAliasesRejected() {
         XCTAssertThrowsError(try ReceivePolicy.validate(offer(["Photo.jpg", "photo.jpg"]), settings: AppSettings()))
         XCTAssertThrowsError(try ReceivePolicy.validate(offer(["café.jpg", "cafe\u{301}.jpg"]), settings: AppSettings()))
     }
+
     func testFileDirectoryConflictRejected() {
         XCTAssertThrowsError(try ReceivePolicy.validate(offer(["photo.jpg", "photo.jpg/inside"]), settings: AppSettings()))
     }
+
     func testByteOverflowRejectedBeforeSummation() {
         let oversized = TransferOffer(senderName: "Test", senderFingerprint: fingerprint, entries: [
             .init(relativePath: "a", size: Int64.max, isDirectory: false),
             .init(relativePath: "b", size: Int64.max, isDirectory: false)
         ])
-        XCTAssertThrowsError(try ReceivePolicy.validate(oversized, settings: AppSettings()))
+        var settings = AppSettings()
+        settings.maxTransferBytes = Int64.max
+        XCTAssertThrowsError(try ReceivePolicy.validate(oversized, settings: settings)) { error in
+            XCTAssertEqual(error.localizedDescription, L10n.string("文件大小累计溢出"))
+        }
     }
+
     func testFolderRulesApplyToRootsAndEveryExtension() throws {
         var settings = automaticSettings()
         settings.rules[0].scope = .folders
@@ -60,6 +79,7 @@ final class ReceivePolicyTests: XCTestCase {
         XCTAssertTrue(try ReceivePolicy.evaluate(settings: settings, offer: offer(["Photos 2026/a.jpg"]), fingerprint: fingerprint).autoAccept)
         XCTAssertFalse(try ReceivePolicy.evaluate(settings: settings, offer: offer(["Photos 2026/a.jpg", "Other/b.jpg"]), fingerprint: fingerprint).autoAccept)
     }
+
     func testWindowsJSONUnknownTimestampFieldsAreIgnored() throws {
         let json = """
         {"type":"hello","version":1,"peer":{"fingerprint":"\(fingerprint)","name":"Windows","platform":"windows","address":"192.168.1.4","port":45831,"receivingEnabled":true,"lastSeen":"2026-10-08T08:01:02.1234567+00:00"}}
@@ -67,6 +87,28 @@ final class ReceivePolicyTests: XCTestCase {
         let hello = try JSONDecoder().decode(WireMessage.self, from: Data(json.utf8))
         XCTAssertEqual(hello.peer?.name, "Windows")
     }
+
+    func testWindowsUTF16NameAndDescriptionLimitsRemainCompatible() throws {
+        var incoming = offer()
+        incoming.senderName = String(repeating: "中", count: 256)
+        incoming.summary = String(repeating: "文", count: 16_384)
+        XCTAssertNoThrow(try ReceivePolicy.validate(incoming, settings: AppSettings()))
+        incoming.senderName.append("a")
+        XCTAssertThrowsError(try ReceivePolicy.validate(incoming, settings: AppSettings()))
+        incoming.senderName = "PC"
+        incoming.summary.append("a")
+        XCTAssertThrowsError(try ReceivePolicy.validate(incoming, settings: AppSettings()))
+    }
+
+    func testLegacyOfferWithoutSummaryDecodesAsEmpty() throws {
+        let json = """
+        {"id":"legacy","senderName":"Windows","senderFingerprint":"\(fingerprint)","entries":[{"relativePath":"empty.txt","size":0,"isDirectory":false}]}
+        """
+        let decoded = try JSONDecoder().decode(TransferOffer.self, from: Data(json.utf8))
+        XCTAssertEqual(decoded.summary, "")
+        XCTAssertEqual(decoded.entries.first?.relativePath, "empty.txt")
+    }
+
     func testWildcardAndLANBoundary() {
         XCTAssertTrue(ReceivePolicy.wildcard("photos-??", "photos-12"))
         XCTAssertFalse(ReceivePolicy.wildcard("photos-??", "photos-123"))
